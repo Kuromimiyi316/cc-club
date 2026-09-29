@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一键派单 · 粉白玻璃拟态</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(145deg, #ffeef5 0%, #ffe4ed 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem 1.5rem 0.5rem;
+    }
+
+    /* 主容器 — 玻璃拟态卡片 */
+    .glass-panel {
+      max-width: 780px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-radius: 36px;
+      padding: 2rem 2rem 2rem 2rem;
+      box-shadow: 
+        0 25px 50px -12px rgba(255, 150, 180, 0.35),
+        inset 0 1px 2px rgba(255, 255, 255, 0.8),
+        inset 0 -2px 6px rgba(255, 220, 235, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      transition: all 0.2s ease;
+    }
+
+    /* 标题区 — 居中 + 下方两行空行 */
+    .title-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .title-section h1 {
+      font-size: 1.9rem;
+      font-weight: 600;
+      color: #4a2e3b;
+      letter-spacing: -0.01em;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+      text-align: center;
+    }
+
+    .title-section span {
+      font-size: 2rem;
+      line-height: 1;
+      filter: drop-shadow(0 4px 6px rgba(255, 140, 170, 0.3));
+    }
+
+    /* 两行空行占位 */
+    .spacer-two-lines {
+      height: 2.6rem;
+      width: 100%;
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    /* 表单网格 */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem 1.2rem;
+      margin-bottom: 1.8rem;
+    }
+
+    /* 每个输入组 */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .input-group label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #7a4b5e;
+      letter-spacing: 0.02em;
+      padding-left: 0.3rem;
+      opacity: 0.9;
+    }
+
+    /* 玻璃输入框 */
+    .glass-input {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 18px;
+      padding: 0.8rem 1rem;
+      font-size: 0.95rem;
+      color: #3a2830;
+      font-weight: 500;
+      box-shadow: 
+        0 6px 12px -6px rgba(255, 120, 160, 0.2),
+        inset 0 1px 3px rgba(255, 255, 255, 0.9);
+      transition: all 0.2s ease;
+      outline: none;
+      width: 100%;
+    }
+
+    .glass-input:focus {
+      border-color: #ffb0c8;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 
+        0 0 0 3px rgba(255, 180, 200, 0.4),
+        inset 0 1px 4px #fff;
+    }
+
+    .glass-input::placeholder {
+      color: #c79aab;
+      font-weight: 400;
+      opacity: 0.7;
+    }
+
+    /* 自动生成只读字段特殊样式 */
+    .readonly-field {
+      background: rgba(255, 235, 240, 0.7);
+      border-color: rgba(255, 210, 220, 0.8);
+      color: #5c3b49;
+      font-weight: 600;
+      cursor: default;
+      box-shadow: inset 0 2px 5px rgba(255, 200, 215, 0.3);
+    }
+
+    .readonly-field:focus {
+      box-shadow: inset 0 2px 5px rgba(255, 200, 215, 0.3);
+      border-color: rgba(255, 200, 215, 0.9);
+      background: rgba(255, 235, 240, 0.7);
+    }
+
+    /* 序号自定义特殊提示 */
+    .hint-badge {
+      font-size: 0.7rem;
+      color: #b16d85;
+      margin-left: 0.3rem;
+    }
+
+    /* 双列宽度的输入组 */
+    .span-2 {
+      grid-column: span 2;
+    }
+
+    /* 带单位的输入框容器 */
+    .input-with-unit {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-with-unit .glass-input {
+      padding-right: 3rem;
+    }
+
+    .unit-tag {
+      position: absolute;
+      right: 1.2rem;
+      color: #7a4b5e;
+      font-weight: 500;
+      font-size: 0.95rem;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    /* 按钮组 */
+    .button-group {
+      display: flex;
+      gap: 0.8rem;
+      justify-content: flex-end;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    /* 玻璃按钮 */
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      border-radius: 28px;
+      padding: 0.85rem 2rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #4a2e3b;
+      box-shadow: 
+        0 8px 18px -8px rgba(255, 140, 170, 0.4),
+        inset 0 1px 3px rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      letter-spacing: 0.3px;
+    }
+
+    .glass-btn:hover {
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 
+        0 10px 22px -8px rgba(255, 120, 160, 0.6),
+        inset 0 1px 3px #fff;
+      transform: scale(1.01);
+    }
+
+    .glass-btn:active {
+      transform: scale(0.98);
+      background: rgba(255, 245, 250, 0.9);
+    }
+
+    /* 派单内容生成区 */
+    .output-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 28px;
+      padding: 1.6rem 1.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 
+        0 15px 30px -12px rgba(255, 150, 180, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+      margin-top: 0.5rem;
+    }
+
+    .output-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .output-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #7a4b5e;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.8;
+    }
+
+    .copy-btn {
+      background: rgba(255, 230, 240, 0.8);
+      border: 1px solid rgba(255, 210, 225, 0.9);
+      border-radius: 40px;
+      padding: 0.4rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #6b3e50;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 6px rgba(255, 170, 190, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 245, 250, 0.95);
+      border-color: #ffb8cf;
+      box-shadow: 0 4px 10px rgba(255, 140, 170, 0.4);
+    }
+
+    /* 最终输出文本 — 清晰深色 */
+    .output-content {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace, system-ui;
+      font-size: 0.95rem;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #2d1e26;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.4);
+      padding: 1rem 1.2rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      letter-spacing: 0.2px;
+      min-height: 180px;
+      user-select: text;
+      box-shadow: inset 0 1px 5px rgba(255, 220, 235, 0.3);
+    }
+
+    /* 反馈信息小提示 */
+    .toast-message {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(60, 40, 50, 0.85);
+      backdrop-filter: blur(10px);
+      color: #fff0f5;
+      font-weight: 500;
+      padding: 0.7rem 2rem;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 999;
+      border: 1px solid rgba(255, 200, 220, 0.5);
+    }
+
+    .toast-message.show {
+      opacity: 1;
+    }
+
+    /* 版权信息 — 网页最底部 */
+    .copyright {
+      margin-top: 1.2rem;
+      margin-bottom: 0.8rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #a06b7e;
+      letter-spacing: 0.3px;
+      text-align: center;
+      opacity: 0.85;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+      transition: opacity 0.2s;
+    }
+
+    .copyright:hover {
+      opacity: 1;
+      color: #8a5668;
+    }
+
+    /* 响应式 */
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem 1rem 0.5rem;
+      }
+      .glass-panel {
+        padding: 1.5rem 1.2rem;
+      }
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+      }
+      .span-2 {
+        grid-column: span 1;
+      }
+      .button-group {
+        justify-content: stretch;
+      }
+      .glass-btn {
+        flex: 1;
+        padding: 0.8rem 1rem;
+      }
+      .title-section h1 {
+        font-size: 1.5rem;
+      }
+      .copyright {
+        font-size: 0.75rem;
+      }
+    }
+
+    /* 自定义滚动条 */
+    .output-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .output-content::-webkit-scrollbar-track {
+      background: rgba(255, 230, 240, 0.4);
+      border-radius: 10px;
+    }
+    .output-content::-webkit-scrollbar-thumb {
+      background: #ffb0c8;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="glass-panel">
+  <!-- 标题居中，下增两行空行 -->
+  <div class="title-section">
+    <span>📋</span>
+    <h1>一键派单</h1>
+  </div>
+  <div class="spacer-two-lines"></div>
+
+  <!-- 输入表单 -->
+  <div class="form-grid" id="orderForm">
+    <!-- 订单编号 (自动生成，只读) -->
+    <div class="input-group">
+      <label>订单编号 <span class="hint-badge">(自动生成)</span></label>
+      <input type="text" id="orderIdDisplay" class="glass-input readonly-field" readonly value="">
+    </div>
+
+    <!-- 序号自定义 -->
+    <div class="input-group">
+      <label>序号 <span class="hint-badge">(自定义)</span></label>
+      <input type="text" id="orderSuffix" class="glass-input" placeholder="例如 02" value="" maxlength="4">
+    </div>
+
+    <!-- 派单客服 -->
+    <div class="input-group">
+      <label>派单客服</label>
+      <input type="text" id="csName" class="glass-input" placeholder="例如 小米" value="">
+    </div>
+
+    <!-- 老板昵称 -->
+    <div class="input-group">
+      <label>老板昵称</label>
+      <input type="text" id="bossName" class="glass-input" placeholder="例如 人间小甜瓜" value="">
+    </div>
+
+    <!-- 派单类型 -->
+    <div class="input-group">
+      <label>派单类型</label>
+      <input type="text" id="orderType" class="glass-input" placeholder="例如 128/888" value="">
+    </div>
+
+    <!-- 预计人数 (数字 + 自动单位“人”) -->
+    <div class="input-group">
+      <label>预计人数 <span class="hint-badge">(只需数字)</span></label>
+      <div class="input-with-unit">
+        <input type="text" id="peopleCount" class="glass-input" placeholder="例如 2" value="" inputmode="numeric">
+        <span class="unit-tag">人</span>
+      </div>
+    </div>
+
+    <!-- 派单时间 (自动生成，只读) -->
+    <div class="input-group span-2">
+      <label>派单时间 <span class="hint-badge">(自动生成)</span></label>
+      <input type="text" id="orderTimeDisplay" class="glass-input readonly-field" readonly value="">
+    </div>
+
+    <!-- 需求补充 (单列宽) -->
+    <div class="input-group span-2">
+      <label>需求补充</label>
+      <input type="text" id="extraNote" class="glass-input" placeholder="例如 打航天" value="">
+    </div>
+  </div>
+
+  <!-- 操作按钮组 -->
+  <div class="button-group">
+    <button class="glass-btn" id="generateBtn">✨ 生成派单</button>
+    <button class="glass-btn" id="resetBtn">🔄 重置默认</button>
+  </div>
+
+  <!-- 生成结果展示区 -->
+  <div class="output-card">
+    <div class="output-header">
+      <h3>📄 派单模版</h3>
+      <button class="copy-btn" id="copyBtn">📋 复制</button>
+    </div>
+    <div class="output-content" id="outputText"></div>
+  </div>
+</div>
+
+<!-- 版权信息 — 最底部 -->
+<div class="copyright">©️小米 Xiaomi 版权所有</div>
+
+<!-- 复制提示浮层 -->
+<div id="toast" class="toast-message">已复制到剪贴板 ✅</div>
+
+<script>
+  (function() {
+    // DOM 元素
+    const orderIdDisplay = document.getElementById('orderIdDisplay');
+    const orderSuffix = document.getElementById('orderSuffix');
+    const csName = document.getElementById('csName');
+    const bossName = document.getElementById('bossName');
+    const orderType = document.getElementById('orderType');
+    const peopleCount = document.getElementById('peopleCount');
+    const orderTimeDisplay = document.getElementById('orderTimeDisplay');
+    const extraNote = document.getElementById('extraNote');
+    const outputText = document.getElementById('outputText');
+    const generateBtn = document.getElementById('generateBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const toast = document.getElementById('toast');
+
+    // 固定模版尾部
+    const FIXED_FOOTER = `\n\n ✨🈚队友扣1️⃣\n ✨🈶队友扣2️⃣  @队友\n ✨即时订单5分钟内进队伍给反馈`;
+
+    // ---- 工具函数 ----
+    // 获取当日日期 MMdd
+    function getCurrentDateMMDD() {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${month}${day}`;
+    }
+
+    // 获取当前完整派单时间字符串 (格式: YYYY/M/D HH:mm)
+    function getCurrentTimeString() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      return `${year}/${month}/${day}  ${hours}:${minutes}`;
+    }
+
+    // 更新订单编号只读显示 (日期前缀 + 序号，若序号为空则显示日期前缀-)
+    function updateOrderIdDisplay() {
+      const prefix = getCurrentDateMMDD();
+      let suffix = orderSuffix.value.trim();
+      if (suffix === '') {
+        orderIdDisplay.value = `${prefix}-`;
+      } else {
+        orderIdDisplay.value = `${prefix}-${suffix}`;
+      }
+    }
+
+    // 更新派单时间只读显示 (始终显示当前时间)
+    function updateOrderTimeDisplay() {
+      orderTimeDisplay.value = getCurrentTimeString();
+    }
+
+    // 获取完整订单编号 (用于生成文本)
+    function getFullOrderId() {
+      const prefix = getCurrentDateMMDD();
+      let suffix = orderSuffix.value.trim();
+      if (suffix === '') suffix = '02';
+      return `${prefix}-${suffix}`;
+    }
+
+    // 获取人数文本
+    function getPeopleText() {
+      let raw = peopleCount.value.trim();
+      const digits = raw.replace(/\D/g, '');
+      if (digits === '') return '2人';
+      return `${digits}人`;
+    }
+
+    // 生成派单文本
+    function generateOrderText() {
+      const orderId = getFullOrderId();
+      const cs = csName.value.trim() || '小米';
+      const boss = bossName.value.trim() || '人间小甜瓜';
+      const type = orderType.value.trim() || '128/888';
+      const people = getPeopleText();
+      const time = orderTimeDisplay.value || getCurrentTimeString();
+      const extra = extraNote.value.trim() || '打航天';
+
+      return `订单编号：${orderId}
+派单客服：${cs}
+老板昵称：${boss}
+派单类型：${type}
+预计人数：${people}
+派单时间：${time}
+需求补充：${extra}${FIXED_FOOTER}`;
+    }
+
+    // 刷新输出
+    function refreshOutput() {
+      outputText.textContent = generateOrderText();
+    }
+
+    // 显示toast
+    function showToast(message) {
+      toast.textContent = message || '已复制到剪贴板 ✅';
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 1500);
+    }
+
+    // 复制到剪贴板
+    async function copyOutputToClipboard() {
+      const text = outputText.textContent;
+      if (!text) {
+        showToast('暂无可复制内容，请先点击生成派单');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('已复制到剪贴板 ✅');
+      } catch (err) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('已复制到剪贴板 ✅');
+      }
+    }
+
+    // 重置为初始状态（自动字段保留，其他清空）
+    function resetToInitial() {
+      // 清空自定义字段
+      csName.value = '';
+      bossName.value = '';
+      orderType.value = '';
+      peopleCount.value = '';
+      extraNote.value = '';
+      // 序号清空
+      orderSuffix.value = '';
+      // 清空输出区
+      outputText.textContent = '';
+      // 自动生成字段重新填充
+      updateOrderIdDisplay();
+      updateOrderTimeDisplay();
+    }
+
+    // ---- 初始化 ----
+    function init() {
+      // 初始自动生成字段显示
+      updateOrderIdDisplay();
+      updateOrderTimeDisplay();
+
+      // 监听序号变化，实时更新订单编号显示
+      orderSuffix.addEventListener('input', () => {
+        updateOrderIdDisplay();
+      });
+
+      // 生成按钮
+      generateBtn.addEventListener('click', () => {
+        // 更新时间（保持最新）
+        updateOrderTimeDisplay();
+        // 更新订单编号显示（确保序号同步）
+        updateOrderIdDisplay();
+        // 生成文本
+        refreshOutput();
+        // 按钮动效
+        generateBtn.style.transform = 'scale(0.96)';
+        setTimeout(() => generateBtn.style.transform = '', 120);
+      });
+
+      // 重置按钮：回到初始状态（自动字段保留，其他清空，输出区清空）
+      resetBtn.addEventListener('click', () => {
+        resetToInitial();
+        showToast('已重置为初始状态');
+      });
+
+      // 复制按钮
+      copyBtn.addEventListener('click', copyOutputToClipboard);
+
+      // 人数输入框限制只能输入数字
+      peopleCount.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '');
+      });
+
+      // 只读字段点击提示
+      orderIdDisplay.addEventListener('click', () => {
+        showToast('订单编号自动生成（日期+序号），修改序号即可更新');
+      });
+      orderTimeDisplay.addEventListener('click', () => {
+        showToast('派单时间自动生成，点击“生成派单”刷新');
+      });
+    }
+
+    init();
+  })();
+</script>
+</body>
+</html>
