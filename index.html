@@ -86,6 +86,8 @@ body{background:#f4f7fc;padding:20px;min-height:100vh;display:flex;flex-directio
 .btn-danger:hover{background:#b71c2c}
 .btn-delete{background:#fff0f0;color:#c0392b;border:1px solid #f5c6c6}
 .btn-delete:hover{background:#ffe0e0}
+.btn-dispatch{background:#2a86c7;color:#fff}
+.btn-dispatch:hover{background:#1e6f9f}
 .empty-state{color:#97abc2;font-size:.85rem;padding:20px 10px;text-align:center;background:#ffffffc7;border-radius:14px;border:1px dashed #cddaea}
 .list-view{display:flex;flex-direction:column;gap:8px}
 .list-item{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;background:#fff;border-radius:12px;padding:12px 16px;border:1px solid #e3eaf2;font-size:.85rem;transition:.15s}
@@ -148,6 +150,9 @@ body{background:#f4f7fc;padding:20px;min-height:100vh;display:flex;flex-directio
 .transfer-total-bar{background:#fdf6f0;border-radius:14px;padding:12px 16px;font-size:.9rem;font-weight:600;color:#8b5e3c;display:flex;justify-content:space-between;align-items:center;border:1px solid #e8ddd4}
 .transfer-total-bar .total-amount{font-size:1.15rem;font-weight:800;color:#c0392b}
 .add-group-btn{align-self:flex-start;margin-top:4px}
+.dispatch-btn-wrap{margin-top:6px;padding-top:12px;border-top:1px dashed #d7e2f0;display:flex;flex-direction:column;gap:8px}
+.dispatch-btn-wrap .dispatch-hint{font-size:.75rem;color:#8a9bb2}
+.dispatch-preview{background:#f8fafc;border:1px solid #cfddee;border-radius:12px;padding:12px 14px;font-size:.82rem;line-height:1.9;color:#1a2b4c;font-family:'SF Mono','Menlo',monospace;white-space:pre-wrap;word-break:break-all}
 .transfer-record-display{background:#fdf6f0;border-radius:12px;padding:14px 18px;font-size:.85rem;line-height:1.9;color:#4a3a2e;border-left:4px solid #8b5e3c}
 .transfer-record-display .group-line{padding:4px 0;border-bottom:1px dashed #e8ddd4}
 .transfer-record-display .group-line:last-child{border-bottom:none}
@@ -203,9 +208,8 @@ body{background:#f4f7fc;padding:20px;min-height:100vh;display:flex;flex-directio
 
 <script>
 /* ============ 数据层 ============ */
-const STORAGE_KEY = 'paidan_orders_v10_persistent_empty_first';
+const STORAGE_KEY = 'paidan_orders_v11_dispatch';
 
-/* 首次加载为空数组；之后从 localStorage 读取，刷新不会丢 */
 function loadOrders(){
     try{
         const raw=localStorage.getItem(STORAGE_KEY);
@@ -214,7 +218,6 @@ function loadOrders(){
             if(Array.isArray(parsed)) return parsed.map(o=>({...o,transferGroups:(o.transferGroups||[]).map(g=>({...g,count:g.count||'1'}))}));
         }
     }catch(e){console.warn('读取失败',e);}
-    /* 首次访问：返回空数组，并写入 localStorage，确保刷新后仍是空而不是重新初始化 */
     try{localStorage.setItem(STORAGE_KEY,'[]');}catch(e){}
     return [];
 }
@@ -256,6 +259,19 @@ function autoCountFromPlayers(player1,player2){
     if(p1&&p2) return '2';
     if(p1||p2) return '1';
     return '1';
+}
+
+/* ★ 修复：保留 1118-34 完整编号，只在末尾追加/替换 -n */
+function buildDispatchOrderId(baseId, groupCount){
+    const n = groupCount || 1;
+    let id = String(baseId || '').trim();
+    /* 如果已经是 “xxx-数字” 结尾，且去掉最后一段后仍包含 “-”，
+       说明最后一段是之前追加的派单条后缀，需要先去掉它 */
+    const m = id.match(/^(.*)-(\d+)$/);
+    if (m && m[1] && m[1].includes('-')) {
+        id = m[1];
+    }
+    return `${id}-${n}`;
 }
 
 function sortOrders(list){
@@ -693,7 +709,7 @@ function openViewTransferPanel(orderId){
     });
 }
 
-/* ============ 转单编辑 ============ */
+/* ============ 转单编辑 + 转单派单条 ============ */
 function openTransferPanel(orderId){
     const order=orders.find(o=>o.id===orderId);
     if(!order) return;
@@ -733,6 +749,21 @@ function renderTransferPanel(order){
         return `<div class="transfer-total-bar"><span>🔻 炸单费总计（所有组合计）</span><span class="total-amount">${fmtMoney(total)}</span></div>`;
     };
 
+    const buildDispatchText=()=>{
+        const groups=order.transferGroups||[];
+        const latest=groups.length>0?groups[groups.length-1]:null;
+        const extraText=latest&&latest.desc?latest.desc:(order.extra||'');
+        const dispatchId=buildDispatchOrderId(order.id,groups.length||1);
+        return [
+            `派单编号：${dispatchId}`,
+            `派单客服：${order.customerService||''}`,
+            `老板昵称：${order.bossNickname||''}`,
+            `派单类型：${order.type||''}`,
+            `预计人数：${order.expectedPeople||''}`,
+            `需求补充：${extraText}`
+        ].join('\n');
+    };
+
     panelContainer.innerHTML=`
         <div class="panel-overlay" id="transfer-overlay">
             <div class="panel" style="max-width:860px;">
@@ -741,6 +772,11 @@ function renderTransferPanel(order){
                 <div class="transfer-group-list" id="transfer-group-list">${buildGroupsHtml()}</div>
                 <button class="btn btn-outline add-group-btn" id="btn-add-group">+ 添加一组打手</button>
                 <div id="transfer-total-wrapper">${buildTotalHtml()}</div>
+                <div class="dispatch-btn-wrap">
+                    <button class="btn btn-dispatch" id="btn-dispatch-copy">📋 转单派单条（复制）</button>
+                    <div class="dispatch-hint">将最新一组的“说明”填入需求补充，按转单组数在编号后加 -n，一键复制派单条</div>
+                    <div class="dispatch-preview" id="dispatch-preview">${buildDispatchText().replace(/</g,'&lt;')}</div>
+                </div>
                 <div class="actions-panel">
                     <button class="btn btn-outline" id="transfer-cancel">取消</button>
                     <button class="btn btn-primary" id="transfer-save">保存转单记录</button>
@@ -762,6 +798,8 @@ function renderTransferPanel(order){
         });
         const totalWrapper=document.getElementById('transfer-total-wrapper');
         if(totalWrapper) totalWrapper.innerHTML=buildTotalHtml();
+        const preview=document.getElementById('dispatch-preview');
+        if(preview) preview.textContent=buildDispatchText();
     };
 
     document.getElementById('close-transfer-btn').addEventListener('click',closePanel);
@@ -802,8 +840,44 @@ function renderTransferPanel(order){
         });
     });
 
-    document.querySelectorAll('[data-group-field="count"], [data-group-field="fee"]').forEach(inp=>{
+    document.querySelectorAll('[data-group-field="count"], [data-group-field="fee"], [data-group-field="desc"]').forEach(inp=>{
         inp.addEventListener('input',refreshTotals);
+    });
+
+    document.getElementById('btn-dispatch-copy').addEventListener('click',()=>{
+        const groups=collectGroupsFromPanel();
+        order.transferGroups=groups;
+        const latest=groups.length>0?groups[groups.length-1]:null;
+        const extraText=latest&&latest.desc?latest.desc:'';
+        if(extraText) order.extra=extraText;
+        const dispatchText=buildDispatchText();
+        saveOrders();
+        renderAll();
+
+        const done=(ok)=>{
+            const btn=document.getElementById('btn-dispatch-copy');
+            if(!btn) return;
+            btn.textContent=ok?'✅ 已复制派单条':'❌ 复制失败';
+            setTimeout(()=>{if(btn) btn.textContent='📋 转单派单条（复制）';},1500);
+        };
+
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+            navigator.clipboard.writeText(dispatchText).then(()=>done(true)).catch(()=>{
+                const ta=document.createElement('textarea');
+                ta.value=dispatchText;
+                document.body.appendChild(ta);
+                ta.select();
+                try{document.execCommand('copy');done(true);}catch(e){done(false);}
+                document.body.removeChild(ta);
+            });
+        }else{
+            const ta=document.createElement('textarea');
+            ta.value=dispatchText;
+            document.body.appendChild(ta);
+            ta.select();
+            try{document.execCommand('copy');done(true);}catch(e){done(false);}
+            document.body.removeChild(ta);
+        }
     });
 
     document.getElementById('transfer-save').addEventListener('click',()=>{
@@ -998,7 +1072,6 @@ function exportPendingOrders(){
         output+=`老板昵称：${order.bossNickname}\n`;
         output+=`派单类型：${order.type}\n`;
         output+=`预计人数：${order.expectedPeople}\n`;
-        output+=`派单时间：${order.createTime}\n`;
         output+=`需求补充：${order.extra||''}\n`;
         if(index<pendingOrders.length-1) output+=DIVIDER+'\n';
     });
@@ -1016,7 +1089,6 @@ function showExportPanel(text,pendingOrders){
         previewHtml+=`老板昵称：${order.bossNickname}<br>`;
         previewHtml+=`派单类型：${order.type}<br>`;
         previewHtml+=`预计人数：${order.expectedPeople}<br>`;
-        previewHtml+=`派单时间：${order.createTime}<br>`;
         previewHtml+=`需求补充：${order.extra||''}<br>`;
         if(index<pendingOrders.length-1) previewHtml+=DIVIDER+'<br>';
     });
