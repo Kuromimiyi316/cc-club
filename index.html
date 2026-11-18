@@ -203,18 +203,9 @@ body{background:#f4f7fc;padding:20px;min-height:100vh;display:flex;flex-directio
 
 <script>
 /* ============ 数据层 ============ */
-const STORAGE_KEY = 'paidan_orders_v9_hide_transfer_on_done';
+const STORAGE_KEY = 'paidan_orders_v10_persistent_empty_first';
 
-const DEFAULT_ORDERS = [
-    {id:'1118-26',customerService:'薯片',bossNickname:'姜尚真',type:'环游航天288/1288-/--288',expectedPeople:'2人',extra:'需要优先处理，老板急着开',assignee1:'',assignee2:'',status:'pending',bossWaiting:true,bossFinished:false,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[]},
-    {id:'1118-27',customerService:'小葵',bossNickname:'星野',type:'环游航天288/1288-/--288',expectedPeople:'3人',extra:'老板说可等',assignee1:'',assignee2:'',status:'pending',bossWaiting:true,bossFinished:false,urgent:true,createTime:'2026-11-18 15:50:12',transferGroups:[]},
-    {id:'1118-25',customerService:'薯片',bossNickname:'陈平安',type:'环游航天288/1288-/--288',expectedPeople:'2人',extra:'已完成反馈',assignee1:'小葵',assignee2:'',status:'progress',bossWaiting:false,bossFinished:false,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[{player1:'小葵',player2:'',count:'1',fee:'0',desc:'首组'}]},
-    {id:'1118-28',customerService:'阿卷',bossNickname:'李四',type:'环游航天288/1288-/--288',expectedPeople:'3人',extra:'',assignee1:'薯片',assignee2:'小葵',status:'progress',bossWaiting:true,bossFinished:false,urgent:false,createTime:'2026-11-18 15:52:00',transferGroups:[{player1:'薯片',player2:'小葵',count:'2',fee:'0',desc:'第一组'},{player1:'阿卷',player2:'',count:'1',fee:'20',desc:'换组，炸单费20'}]},
-    {id:'1118-24',customerService:'阿卷',bossNickname:'宁姚',type:'环游航天288/1288-/--288',expectedPeople:'1人',extra:'需要核对信息',assignee1:'薯片',assignee2:'阿卷',status:'done',bossWaiting:false,bossFinished:true,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[{player1:'薯片',player2:'阿卷',count:'2',fee:'0',desc:'首组'},{player1:'小葵',player2:'',count:'1',fee:'15',desc:'换人，炸单费15'}]},
-    {id:'1118-23',customerService:'小葵',bossNickname:'陆沉',type:'环游航天288/1288-/--288',expectedPeople:'2人',extra:'加急',assignee1:'阿卷',assignee2:'',status:'done',bossWaiting:true,bossFinished:true,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[]},
-    {id:'1118-22',customerService:'小葵',bossNickname:'李二',type:'环游航天288/1288-/--288',expectedPeople:'1人',extra:'客户取消',assignee1:'',assignee2:'',status:'abandoned',bossWaiting:false,bossFinished:false,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[]}
-];
-
+/* 首次加载为空数组；之后从 localStorage 读取，刷新不会丢 */
 function loadOrders(){
     try{
         const raw=localStorage.getItem(STORAGE_KEY);
@@ -223,9 +214,9 @@ function loadOrders(){
             if(Array.isArray(parsed)) return parsed.map(o=>({...o,transferGroups:(o.transferGroups||[]).map(g=>({...g,count:g.count||'1'}))}));
         }
     }catch(e){console.warn('读取失败',e);}
-    const defaults=JSON.parse(JSON.stringify(DEFAULT_ORDERS));
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(defaults));}catch(e){}
-    return defaults;
+    /* 首次访问：返回空数组，并写入 localStorage，确保刷新后仍是空而不是重新初始化 */
+    try{localStorage.setItem(STORAGE_KEY,'[]');}catch(e){}
+    return [];
 }
 function saveOrders(){
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(orders));}
