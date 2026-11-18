@@ -274,6 +274,23 @@ function buildDispatchOrderId(baseId, groupCount){
     return `${id}-${n}`;
 }
 
+/* ★ 按派单编号排序：先按前缀字符串，再按末尾数字 */
+function idSortKey(id){
+    const str=String(id||'');
+    const m=str.match(/^(.*?)-(\d+)$/);
+    if(m){
+        return {prefix:m[1], num:parseInt(m[2],10)||0};
+    }
+    return {prefix:str, num:0};
+}
+function sortById(list){
+    return [...list].sort((a,b)=>{
+        const ka=idSortKey(a.id), kb=idSortKey(b.id);
+        if(ka.prefix!==kb.prefix) return ka.prefix.localeCompare(kb.prefix);
+        return ka.num-kb.num;
+    });
+}
+
 function sortOrders(list){
     return [...list].sort((a,b)=>{
         if(a.urgent&&!b.urgent) return -1;
@@ -331,7 +348,8 @@ function renderAll(){
 
     const allPending=sortOrders(orders.filter(o=>o.status==='pending'));
     const allProgress=sortOrders(orders.filter(o=>o.status==='progress'));
-    const allDone=sortOrders(orders.filter(o=>o.status==='done'));
+    /* ★ 已结束：按派单编号排序 */
+    const allDone=sortById(orders.filter(o=>o.status==='done'));
     const allAbandoned=orders.filter(o=>o.status==='abandoned');
 
     const pendingOrders=allPending.filter(matchesSearch);
