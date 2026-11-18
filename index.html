@@ -1,930 +1,1144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>一键派单工具</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        }
-        body {
-            background: #ffffff;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            position: relative;
-            overflow-x: hidden;
-        }
-        .card {
-            background: #ffffff;
-            border-radius: 40px;
-            box-shadow: 0 20px 50px rgba(255, 150, 170, 0.12),
-                        0 8px 24px rgba(255, 200, 150, 0.08),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.9);
-            padding: 36px 32px;
-            width: 100%;
-            max-width: 980px;
-            border: 1.5px solid rgba(255, 210, 220, 0.4);
-            position: relative;
-            z-index: 1;
-        }
-        /* 第一行：派单编号 + 派单客服 */
-        .row-2col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px 22px;
-            margin-bottom: 16px;
-        }
-        /* 第二行：老板昵称 + 派单类型 + 自定义类型 + 预计人数 */
-        .row-4col {
-            display: grid;
-            grid-template-columns: 1fr 1.3fr 1fr 0.8fr;
-            gap: 16px 18px;
-            margin-bottom: 16px;
-        }
-        /* 第三行：派单时间 + 需求补充 */
-        .row-2col-time {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px 22px;
-            margin-bottom: 22px;
-        }
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            min-width: 0;
-        }
-        .field.full-width {
-            grid-column: 1 / -1;
-        }
-        label {
-            font-size: 0.78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: #3a2a30;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        label i {
-            font-style: normal;
-            font-size: 1.1rem;
-        }
-        input, textarea, select {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1.5px solid rgba(255, 200, 215, 0.7);
-            border-radius: 20px;
-            padding: 13px 18px;
-            font-size: 0.95rem;
-            color: #6b3a4a;
-            transition: all 0.2s ease;
-            outline: none;
-            box-shadow: 0 4px 12px rgba(255, 180, 200, 0.06),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.8);
-            font-weight: 500;
-            appearance: none;
-            -webkit-appearance: none;
-            width: 100%;
-            min-width: 0;
-        }
-        select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%233a2a30' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            background-size: 16px;
-            padding-right: 48px;
-            cursor: pointer;
-        }
-        select:focus {
-            border-color: #f0a0b8;
-            box-shadow: 0 0 0 5px rgba(240, 160, 184, 0.15),
-                        0 6px 16px rgba(255, 180, 200, 0.15);
-            background: #ffffff;
-        }
-        input:focus, textarea:focus {
-            border-color: #f0a0b8;
-            box-shadow: 0 0 0 5px rgba(240, 160, 184, 0.15),
-                        0 6px 16px rgba(255, 180, 200, 0.15);
-            background: #ffffff;
-        }
-        input::placeholder, textarea::placeholder {
-            color: #c99aa8;
-            font-weight: 400;
-        }
-        /* 派单编号复合输入框 */
-        .order-id-group {
-            display: flex;
-            align-items: center;
-            gap: 0;
-            background: rgba(255, 255, 255, 0.9);
-            border: 1.5px solid rgba(255, 200, 215, 0.7);
-            border-radius: 20px;
-            overflow: hidden;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(255, 180, 200, 0.06),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.8);
-            width: 100%;
-        }
-        .order-id-group:focus-within {
-            border-color: #f0a0b8;
-            box-shadow: 0 0 0 5px rgba(240, 160, 184, 0.15),
-                        0 6px 16px rgba(255, 180, 200, 0.15);
-        }
-        .order-id-prefix {
-            background: rgba(255, 240, 245, 0.8);
-            padding: 13px 0 13px 18px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #b07a8a;
-            white-space: nowrap;
-            letter-spacing: 0.5px;
-            border-right: none;
-            user-select: none;
-        }
-        .order-id-sep {
-            background: rgba(255, 240, 245, 0.8);
-            padding: 13px 4px 13px 0;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #b07a8a;
-            user-select: none;
-        }
-        .order-id-group input {
-            border: none;
-            border-radius: 0;
-            box-shadow: none;
-            padding: 13px 18px 13px 0;
-            background: rgba(255, 240, 245, 0.8);
-            font-weight: 700;
-            color: #8a4a5e;
-            flex: 1;
-            min-width: 0;
-        }
-        .order-id-group input:focus {
-            box-shadow: none;
-            background: rgba(255, 245, 248, 0.95);
-        }
-        .order-id-group input::placeholder {
-            color: #d4aab8;
-            font-weight: 500;
-        }
-        /* 搜索型下拉列表样式 */
-        .searchable-select {
-            position: relative;
-            width: 100%;
-        }
-        .searchable-select input {
-            width: 100%;
-            cursor: text;
-        }
-        .searchable-select input::placeholder {
-            color: #c99aa8;
-        }
-        .searchable-select .dropdown-list {
-            position: absolute;
-            top: calc(100% + 6px);
-            left: 0;
-            right: 0;
-            max-height: 260px;
-            overflow-y: auto;
-            background: #ffffff;
-            border: 1.5px solid rgba(255, 200, 215, 0.7);
-            border-radius: 16px;
-            box-shadow: 0 16px 40px rgba(255, 150, 170, 0.2),
-                        0 4px 12px rgba(0, 0, 0, 0.04);
-            z-index: 100;
-            display: none;
-            padding: 6px 0;
-        }
-        .searchable-select .dropdown-list.show {
-            display: block;
-        }
-        .searchable-select .dropdown-item {
-            padding: 10px 18px;
-            font-size: 0.9rem;
-            color: #5a2a3a;
-            cursor: pointer;
-            transition: background 0.15s ease;
-            font-weight: 500;
-            line-height: 1.4;
-            word-break: break-all;
-        }
-        .searchable-select .dropdown-item:hover,
-        .searchable-select .dropdown-item.active {
-            background: rgba(255, 240, 245, 0.9);
-            color: #8a3a55;
-        }
-        .searchable-select .dropdown-item.no-result {
-            color: #c99aa8;
-            cursor: default;
-            text-align: center;
-            font-style: italic;
-        }
-        .searchable-select .dropdown-item.no-result:hover {
-            background: transparent;
-        }
-        /* 滚动条美化 */
-        .searchable-select .dropdown-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        .searchable-select .dropdown-list::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .searchable-select .dropdown-list::-webkit-scrollbar-thumb {
-            background: rgba(240, 160, 184, 0.4);
-            border-radius: 10px;
-        }
-        .searchable-select .dropdown-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(240, 160, 184, 0.6);
-        }
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 26px;
-            align-items: center;
-        }
-        .btn {
-            border: none;
-            border-radius: 40px;
-            padding: 13px 28px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 9px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            letter-spacing: 0.3px;
-            border: 1.5px solid rgba(255, 255, 255, 0.7);
-        }
-        .btn-primary {
-            background: linear-gradient(145deg, rgba(248, 200, 212, 0.9), rgba(252, 228, 184, 0.9));
-            backdrop-filter: blur(8px);
-            color: #8a3a55;
-            flex: 1;
-            box-shadow: 0 10px 24px rgba(248, 200, 212, 0.35),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.9);
-        }
-        .btn-primary:hover {
-            background: linear-gradient(145deg, rgba(248, 200, 212, 1), rgba(252, 228, 184, 1));
-            transform: translateY(-2px);
-            box-shadow: 0 16px 32px rgba(248, 200, 212, 0.45);
-        }
-        .btn-danger {
-            background: rgba(255, 255, 255, 0.8);
-            color: #c96a7a;
-            border: 1.5px solid rgba(255, 190, 200, 0.7);
-            box-shadow: 0 6px 16px rgba(255, 180, 200, 0.1),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.8);
-        }
-        .btn-danger:hover {
-            background: rgba(255, 240, 245, 0.95);
-            border-color: #f0a0b8;
-            transform: translateY(-2px);
-        }
-        .btn:active {
-            transform: translateY(0px);
-        }
-        .output-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 0 4px;
-        }
-        .output-header h3 {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #3a2a30;
-            letter-spacing: 0.2px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-        .badge {
-            background: rgba(252, 228, 184, 0.6);
-            color: #a34a6b;
-            font-size: 0.7rem;
-            padding: 5px 12px;
-            border-radius: 30px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border: 1px solid rgba(255, 255, 255, 0.7);
-        }
-        .copy-area {
-            position: relative;
-        }
-        /* 生成结果：完整显示，高度自适应，无上下滚动条 */
-        #outputText {
-            width: 100%;
-            background: #ffffff;
-            border: 1.5px solid rgba(255, 200, 215, 0.7);
-            border-radius: 26px;
-            padding: 22px 24px;
-            font-size: 1rem;
-            line-height: 1.7;
-            color: #5a2a3a;
-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
-            white-space: pre-wrap;
-            word-break: break-word;
-            resize: none;
-            overflow: hidden;
-            height: auto;
-            min-height: 0;
-            box-shadow: inset 0 3px 10px rgba(255, 180, 200, 0.05),
-                        0 6px 18px rgba(255, 180, 200, 0.04);
-            transition: border 0.15s ease;
-            letter-spacing: 0.2px;
-            font-weight: 500;
-            display: block;
-        }
-        #outputText:focus {
-            border-color: #f0a0b8;
-            outline: none;
-        }
-        .copy-btn-wrapper {
-            margin-top: 18px;
-            display: flex;
-            justify-content: flex-end;
-        }
-        .btn-copy {
-            background: linear-gradient(145deg, rgba(248, 200, 212, 0.9), rgba(252, 228, 184, 0.9));
-            color: #8a3a55;
-            padding: 13px 32px;
-            border-radius: 40px;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            border: 1.5px solid rgba(255, 255, 255, 0.8);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 10px 24px rgba(248, 200, 212, 0.35),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.9);
-            font-size: 0.95rem;
-            letter-spacing: 0.3px;
-        }
-        .btn-copy:hover {
-            background: linear-gradient(145deg, rgba(248, 200, 212, 1), rgba(252, 228, 184, 1));
-            transform: translateY(-2px);
-            box-shadow: 0 16px 32px rgba(248, 200, 212, 0.45);
-        }
-        .btn-copy:active {
-            transform: translateY(0);
-        }
-        .btn-copy.copied {
-            background: linear-gradient(145deg, rgba(200, 240, 200, 0.9), rgba(220, 250, 200, 0.9));
-            color: #3a7a4a;
-            box-shadow: 0 10px 24px rgba(180, 240, 180, 0.35);
-        }
-        .toast-message {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            color: #8a3a55;
-            padding: 14px 34px;
-            border-radius: 60px;
-            font-weight: 700;
-            box-shadow: 0 20px 45px rgba(255, 180, 200, 0.25),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.9);
-            opacity: 0;
-            transition: opacity 0.3s, transform 0.3s;
-            pointer-events: none;
-            font-size: 0.95rem;
-            z-index: 1000;
-            border: 1.5px solid rgba(255, 210, 220, 0.6);
-            letter-spacing: 0.3px;
-        }
-        .toast-message.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-        .footer-note {
-            margin-top: 26px;
-            text-align: center;
-            font-size: 0.85rem;
-            color: #3a2a30;
-            letter-spacing: 0.5px;
-            border-top: 1.5px solid rgba(255, 210, 220, 0.5);
-            padding-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            font-weight: 600;
-        }
-        .footer-note span {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .unit-hint {
-            font-size: 0.7rem;
-            color: #3a2a30;
-            font-weight: 500;
-            margin-left: 4px;
-        }
-        .time-badge {
-            font-size: 0.7rem;
-            background: rgba(252, 228, 184, 0.6);
-            padding: 3px 10px;
-            border-radius: 20px;
-            color: #3a2a30;
-            font-weight: 600;
-            margin-left: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            white-space: nowrap;
-        }
-        .custom-badge {
-            font-size: 0.65rem;
-            background: rgba(240, 200, 220, 0.5);
-            padding: 2px 8px;
-            border-radius: 20px;
-            color: #8a3a55;
-            font-weight: 600;
-            margin-left: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            white-space: nowrap;
-        }
-        /* 响应式：窄屏时多列变少列 */
-        @media (max-width: 860px) {
-            .row-4col {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        @media (max-width: 620px) {
-            .row-2col, .row-2col-time {
-                grid-template-columns: 1fr;
-            }
-            .row-4col {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        @media (max-width: 440px) {
-            .row-4col {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排单工具 · 已结束隐藏转单详情</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;padding:0}
+body{background:#f4f7fc;padding:20px;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.app{width:100%;max-width:1380px;background:#fff;border-radius:28px;box-shadow:0 15px 35px rgba(0,20,40,.12);padding:24px 28px 32px;margin:0 auto}
+.title-row{text-align:center;margin-bottom:16px}
+.title-row h1{font-size:2rem;font-weight:600;color:#1a2b4c;letter-spacing:-.3px;display:inline-flex;align-items:center;gap:10px}
+.toolbar-row{display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid #dae2ed;flex-wrap:wrap}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search-box{display:flex;align-items:center;background:#fff;border:1px solid #cfddee;border-radius:40px;padding:0 6px 0 16px;transition:.15s;min-width:260px}
+.search-box:focus-within{border-color:#2a86c7;box-shadow:0 0 0 3px rgba(42,134,199,.15)}
+.search-box input{border:none;outline:none;padding:9px 0;font-size:.9rem;width:100%;background:transparent;color:#1a2b4c}
+.search-box input::placeholder{color:#9aafc7}
+.search-box button{background:none;border:none;cursor:pointer;padding:6px 10px;font-size:1.1rem;color:#8a9bb2;line-height:1}
+.search-box button:hover{color:#1e3a5f}
+.board{display:flex;flex-direction:column;gap:24px}
+.column{background:#f9fbfe;border-radius:20px;padding:14px 16px 18px;border:1px solid #e3eaf2;box-shadow:0 2px 6px rgba(0,0,0,.02)}
+.column-header{display:flex;align-items:center;margin-bottom:14px;padding:0 4px}
+.column-header h2{font-size:1.2rem;font-weight:600;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+.column-header .count{background:#fff;border-radius:40px;padding:2px 12px;font-size:.8rem;font-weight:500;color:#1e3a5f;border:1px solid #cddaea;margin-left:10px}
+.pending .column-header h2{color:#b55a1a}
+.progress .column-header h2{color:#1e6f9f}
+.done .column-header h2{color:#2e7d5e}
+.abandoned .column-header h2{color:#8b5e3c}
+.card-list{display:flex;flex-direction:column;gap:14px;min-height:80px}
+.card{background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,20,30,.05);border-left:5px solid #e68a2e;display:flex;gap:22px;align-items:stretch;border:1px solid #e8eef7;border-left-width:5px;position:relative}
+.card.search-highlight,.list-item.search-highlight{outline:3px solid #f5b042;outline-offset:1px;animation:highlightPulse 1s ease-in-out 2}
+@keyframes highlightPulse{0%{outline-color:#f5b042}50%{outline-color:#ffd966}100%{outline-color:#f5b042}}
+.card.urgent{border:2px solid #e63946;border-left-width:5px;border-left-color:#e63946;background:#fff9f9;box-shadow:0 0 0 3px rgba(230,57,70,.12);animation:urgentPulse 1.5s infinite alternate}
+@keyframes urgentPulse{from{box-shadow:0 0 0 2px rgba(230,57,70,.1)}to{box-shadow:0 0 0 5px rgba(230,57,70,.18)}}
+.card.urgent .order-id{background:#ffe0e0;color:#a4161a}
+.urgent-badge{font-size:.65rem;font-weight:700;background:#e63946;color:#fff;padding:2px 8px;border-radius:30px;letter-spacing:.4px;display:inline-flex;align-items:center;gap:3px;margin-left:6px;white-space:nowrap}
+.card-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+.card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.order-id-group{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.order-id{font-weight:700;font-size:1rem;color:#1e2f44;background:#f0f5fc;padding:3px 12px;border-radius:30px;display:inline-block}
+.status-badge{font-size:.7rem;font-weight:600;padding:3px 12px;border-radius:40px;background:#eef3fa;color:#3b587c;text-transform:uppercase;white-space:nowrap}
+.status-badge.pending-badge{background:#fff0e0;color:#b55a1a}
+.info-row{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:.88rem;color:#2d4059}
+.info-row .info-item{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.info-row .info-label{font-weight:500;color:#6f85a3;font-size:.78rem}
+.info-row .info-value{font-weight:500;color:#1a2b4c}
+.info-row .info-value.type{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.info-row .info-value.note{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#5b6f89;font-style:italic}
+.boss-status{display:inline-flex;align-items:center;gap:4px;background:#f2f7ff;padding:3px 10px;border-radius:40px;font-size:.8rem}
+.status-toggle{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+.status-dot{width:10px;height:10px;border-radius:50%;background:#b0c4de;transition:background .15s}
+.status-dot.waiting{background:#f5b042;box-shadow:0 0 0 2px rgba(245,176,66,.2)}
+.status-dot.offline{background:#a0b2c8}
+.status-dot.playing{background:#2a86c7;box-shadow:0 0 0 2px rgba(42,134,199,.2)}
+.status-dot.finished{background:#3b9b7a}
+.status-label{font-weight:500;color:#2d4059;font-size:.78rem}
+.assignee-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px;background:#f6faff;border-radius:14px;padding:10px 14px}
+.assignee-item{display:flex;align-items:center;gap:8px;flex:1 1 180px}
+.assignee-item label{font-size:.72rem;font-weight:600;color:#5f7392;text-transform:uppercase;white-space:nowrap}
+.assignee-input{border:1px solid #cfddee;border-radius:30px;padding:7px 14px;font-size:.85rem;background:#fff;transition:.15s;width:100%;font-weight:500;color:#1a2b4c}
+.assignee-input:focus{outline:none;border-color:#2a86c7;box-shadow:0 0 0 3px rgba(42,134,199,.12)}
+.assignee-input::placeholder{color:#9aafc7;font-weight:400}
+.card-side{display:flex;flex-direction:column;gap:8px;justify-content:center;align-items:stretch;min-width:130px;padding-left:18px;border-left:1px dashed #d7e2f0}
+.btn{border:none;background:#f0f5fc;padding:7px 16px;border-radius:30px;font-size:.76rem;font-weight:600;color:#1e3a5f;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent;white-space:nowrap;text-align:center}
+.btn:hover{background:#e1eaf5}
+.btn-primary{background:#1e3a5f;color:#fff}
+.btn-primary:hover{background:#14304f}
+.btn-outline{background:#fff;border:1px solid #cfddee}
+.btn-outline:hover{background:#f2f8ff}
+.btn-done{background:#2e7d5e;color:#fff}
+.btn-done:hover{background:#1f6349}
+.btn-edit{background:#eef3fa;color:#1e3a5f}
+.btn-urgent{background:#e63946;color:#fff}
+.btn-urgent:hover{background:#b71c2c}
+.btn-urgent.active{background:#b71c2c;border-color:#a4161a}
+.btn-abandon{background:#f0f0f0;color:#6b5b4f}
+.btn-abandon:hover{background:#e0e0e0}
+.btn-reassign{background:#2e7d5e;color:#fff}
+.btn-reassign:hover{background:#1f6349}
+.btn-transfer{background:#8b5e3c;color:#fff}
+.btn-transfer:hover{background:#6e4a2f}
+.btn-view-transfer{background:#f0f5fc;color:#8b5e3c;border:1px solid #d9c9bc}
+.btn-view-transfer:hover{background:#fdf6f0}
+.btn-danger{background:#e63946;color:#fff}
+.btn-danger:hover{background:#b71c2c}
+.btn-delete{background:#fff0f0;color:#c0392b;border:1px solid #f5c6c6}
+.btn-delete:hover{background:#ffe0e0}
+.empty-state{color:#97abc2;font-size:.85rem;padding:20px 10px;text-align:center;background:#ffffffc7;border-radius:14px;border:1px dashed #cddaea}
+.list-view{display:flex;flex-direction:column;gap:8px}
+.list-item{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;background:#fff;border-radius:12px;padding:12px 16px;border:1px solid #e3eaf2;font-size:.85rem;transition:.15s}
+.list-item.progress-item{border-left:4px solid #2a86c7}
+.list-item.progress-item:hover{background:#f7fbfe;border-color:#c8ddf0}
+.list-item.done-item{border-left:4px solid #3b9b7a}
+.list-item.done-item:hover{background:#f9fdfb;border-color:#c8ddd4}
+.list-item.abandoned-item{border-left:4px solid #b8a99a}
+.list-item.abandoned-item:hover{background:#fdfbf9;border-color:#d0c5b8}
+.list-info{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.list-info .list-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px}
+.list-info .list-id{font-weight:700;background:#f0f5fc;padding:2px 10px;border-radius:20px;font-size:.85rem;color:#1e2f44}
+.list-item.progress-item .list-id{background:#e1f0fe;color:#1e6f9f}
+.list-item.done-item .list-id{background:#e1f5ec;color:#1e6f4a}
+.list-item.abandoned-item .list-id{background:#f5f0eb;color:#5e4e42}
+.list-info .list-field{display:flex;align-items:baseline;gap:4px;color:#6b7a8e}
+.list-info .list-field strong{font-weight:500;color:#8a9bb2;font-size:.7rem;text-transform:uppercase}
+.list-info .list-field span{font-weight:500;color:#2d4059}
+.list-info .list-field .list-type{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.list-info .list-field .list-boss{font-weight:700}
+.list-info .list-field .list-boss-status{display:inline-flex;align-items:center;gap:4px;background:#f2f7ff;padding:1px 8px;border-radius:40px;font-size:.78rem}
+.list-info .list-field .list-boss-status .status-dot{width:8px;height:8px}
+.list-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;align-self:center}
+.transfer-inline{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:#fdf6f0;border-radius:10px;padding:6px 12px;font-size:.78rem;color:#5e4e42;border-left:3px solid #8b5e3c}
+.transfer-inline .transfer-label{font-weight:600;color:#8b5e3c;white-space:nowrap}
+.transfer-inline .transfer-group-tag{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e8ddd4;padding:2px 10px;border-radius:20px;white-space:nowrap}
+.transfer-inline .transfer-group-tag .fee{color:#c0392b;font-weight:600}
+.transfer-inline .transfer-group-tag .desc{color:#8a7a6a;font-style:italic}
+.transfer-inline .transfer-total{font-weight:700;color:#c0392b;background:#fff0f0;padding:2px 10px;border-radius:20px;border:1px solid #f5c6c6}
+.footer{margin-top:28px;text-align:center;font-size:.75rem;color:#99aec9}
+.panel-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,20,40,.3);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:1000}
+.panel{background:#fff;border-radius:28px;width:90%;max-width:680px;max-height:90vh;overflow-y:auto;padding:28px 32px;box-shadow:0 30px 60px rgba(0,20,40,.3);display:flex;flex-direction:column;gap:16px}
+.panel h3{font-size:1.4rem;font-weight:600;color:#1a2b4c;display:flex;justify-content:space-between;align-items:center}
+.panel h3 .close-panel{background:none;border:none;font-size:1.6rem;cursor:pointer;color:#8a9bb2;padding:0 8px;line-height:1}
+.panel .field{display:flex;flex-direction:column;gap:4px}
+.panel .field label{font-size:.8rem;font-weight:600;color:#5f7392;text-transform:uppercase;letter-spacing:.3px}
+.panel .field input,.panel .field textarea{border:1px solid #cfddee;border-radius:12px;padding:10px 14px;font-size:.95rem;font-family:inherit;background:#fff;transition:.15s}
+.panel .field input:focus,.panel .field textarea:focus{outline:none;border-color:#2a86c7;box-shadow:0 0 0 3px rgba(42,134,199,.15)}
+.panel .field textarea{min-height:70px;resize:vertical}
+.panel .row-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.panel .actions-panel{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.paste-area{display:flex;flex-direction:column;gap:6px;background:#f6faff;padding:14px 16px;border-radius:16px;border:1px dashed #cddaea}
+.paste-area label{font-size:.8rem;font-weight:600;color:#5f7392;text-transform:uppercase}
+.paste-area textarea{border:1px solid #cfddee;border-radius:12px;padding:10px 14px;font-size:.85rem;font-family:'SF Mono','Menlo',monospace;min-height:110px;background:#fff;resize:vertical}
+.paste-area .hint{font-size:.75rem;color:#8a9bb2}
+.paste-area .btn-paste-apply{align-self:flex-start;margin-top:4px}
+.panel .checkbox-row{display:flex;align-items:center;gap:8px;font-size:.9rem;color:#2d4059}
+.transfer-group-list{display:flex;flex-direction:column;gap:12px}
+.transfer-group{background:#f9fbfe;border:1px solid #e3eaf2;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative}
+.transfer-group .group-header{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;font-weight:600;color:#8b5e3c}
+.transfer-group .group-header .group-remove{background:none;border:none;color:#c0392b;cursor:pointer;font-size:1rem;padding:0 4px}
+.transfer-group .group-inputs{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.transfer-group .group-inputs input{border:1px solid #cfddee;border-radius:8px;padding:6px 10px;font-size:.82rem;width:90px;background:#fff}
+.transfer-group .group-inputs input:focus{outline:none;border-color:#8b5e3c;box-shadow:0 0 0 2px rgba(139,94,60,.15)}
+.transfer-group .group-inputs .fee-input{width:100px}
+.transfer-group .group-inputs .count-input{width:60px;background:#f0f5fc;font-weight:600;color:#1e3a5f;text-align:center}
+.transfer-group .group-inputs .desc-input{flex:1;min-width:140px;width:auto}
+.transfer-group .group-inputs label{font-size:.7rem;color:#8a9bb2;font-weight:500}
+.group-subtotal{font-size:.8rem;font-weight:600;color:#c0392b;background:#fff0f0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;margin-top:2px}
+.transfer-total-bar{background:#fdf6f0;border-radius:14px;padding:12px 16px;font-size:.9rem;font-weight:600;color:#8b5e3c;display:flex;justify-content:space-between;align-items:center;border:1px solid #e8ddd4}
+.transfer-total-bar .total-amount{font-size:1.15rem;font-weight:800;color:#c0392b}
+.add-group-btn{align-self:flex-start;margin-top:4px}
+.transfer-record-display{background:#fdf6f0;border-radius:12px;padding:14px 18px;font-size:.85rem;line-height:1.9;color:#4a3a2e;border-left:4px solid #8b5e3c}
+.transfer-record-display .group-line{padding:4px 0;border-bottom:1px dashed #e8ddd4}
+.transfer-record-display .group-line:last-child{border-bottom:none}
+.transfer-record-display .group-line .group-label{font-weight:600;color:#8b5e3c}
+.transfer-record-display .fee-text{color:#c0392b;font-weight:500}
+.transfer-record-display .desc-text{color:#6b5b4f;font-style:italic}
+.transfer-record-display .record-total{margin-top:10px;padding-top:10px;border-top:2px solid #e8ddd4;font-weight:700;color:#c0392b;font-size:.95rem;text-align:right}
+.export-urgent-highlight{background:#fff5f5;border-left:4px solid #e63946;padding:4px 8px;margin:2px 0;border-radius:4px;font-weight:600}
+.export-normal-highlight{background:#f5fdf9;border-left:4px solid #3b9b7a;padding:4px 8px;margin:2px 0;border-radius:4px;font-weight:600}
+@media(max-width:820px){.card{flex-direction:column;gap:14px}.card-side{flex-direction:row;flex-wrap:wrap;border-left:none;border-top:1px dashed #d7e2f0;padding-left:0;padding-top:12px;justify-content:flex-start}.card-side .btn{flex:1 1 auto}}
+@media(max-width:680px){.info-row{flex-direction:column;gap:4px}.info-row .info-value.type{max-width:100%;white-space:normal}.info-row .info-value.note{max-width:100%;white-space:normal}.assignee-item{flex:1 1 100%}.app{padding:16px}.panel{padding:20px}.search-box{min-width:180px}.list-item{flex-direction:column;align-items:flex-start}.list-actions{align-self:flex-end}.transfer-group .group-inputs input{width:70px}}
+</style>
 </head>
 <body>
-    <div class="card">
-        <!-- 第一行：派单编号 + 派单客服 -->
-        <div class="row-2col">
-            <div class="field">
-                <label><i>📌</i> 派单编号 <span class="unit-hint">(日期自动 + 序号自定义)</span></label>
-                <div class="order-id-group">
-                    <span class="order-id-prefix" id="orderIdPrefix">0928</span>
-                    <span class="order-id-sep">-</span>
-                    <input type="text" id="orderIdSeq" value="" placeholder="01" maxlength="10">
-                </div>
-            </div>
-            <div class="field">
-                <label><i>🎧</i> 派单客服</label>
-                <select id="customerService">
-                    <option value="" disabled selected>请选择客服</option>
-                    <option value="小米">小米</option>
-                    <option value="栗栗">栗栗</option>
-                </select>
-            </div>
-        </div>
+<div class="app">
+    <div class="title-row"><h1>📋 排单工具</h1></div>
 
-        <!-- 第二行：老板昵称 + 派单类型 + 自定义类型 + 预计人数 -->
-        <div class="row-4col">
-            <div class="field">
-                <label><i>🐱</i> 老板昵称</label>
-                <input type="text" id="bossNickname" value="" placeholder="例如 猫猫">
-            </div>
-            <div class="field">
-                <label><i>🏷️</i> 派单类型</label>
-                <div class="searchable-select" id="orderTypeWrapper">
-                    <input type="text" id="orderTypeInput" value="" placeholder="搜索或点击选择" autocomplete="off">
-                    <div class="dropdown-list" id="orderTypeDropdown">
-                        <!-- 选项由 JS 动态渲染 -->
-                    </div>
-                </div>
-            </div>
-            <div class="field">
-                <label><i>✏️</i> 自定义类型 <span class="custom-badge">备用</span></label>
-                <input type="text" id="customType" value="" placeholder="未选类型时使用" style="font-weight:600;">
-            </div>
-            <div class="field">
-                <label><i>👥</i> 预计人数</label>
-                <select id="peopleCount">
-                    <option value="" disabled selected>请选择人数</option>
-                    <option value="1人">1人</option>
-                    <option value="2人">2人</option>
-                </select>
-            </div>
+    <div class="toolbar-row">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="搜索订单号 / 老板 / 类型...">
+            <button id="search-clear" title="清除搜索">✕</button>
         </div>
-
-        <!-- 第三行：派单时间 + 需求补充 -->
-        <div class="row-2col-time">
-            <div class="field">
-                <label><i>⏰</i> 派单时间 <span class="time-badge">自动生成</span></label>
-                <input type="text" id="dispatchTime" value="" placeholder="自动填充当前时间" readonly style="background:rgba(255,245,248,0.9); color:#8a4a5e; font-weight:600;">
-            </div>
-            <div class="field">
-                <label><i>📝</i> 需求补充 (单行文本，例如：航天地图)</label>
-                <input type="text" id="extraNote" value="" placeholder="例如：航天地图" style="font-weight:600;">
-            </div>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="actions">
-            <button class="btn btn-primary" id="generateBtn">
-                <span>🔄</span> 重新生成模板
-            </button>
-            <button class="btn btn-danger" id="clearBtn">
-                <span>🗑️</span> 一键清空
-            </button>
-        </div>
-
-        <!-- 输出区 -->
-        <div class="output-header">
-            <h3><span>📄</span> 生成结果</h3>
-            <span class="badge">可编辑 / 复制</span>
-        </div>
-        <div class="copy-area">
-            <textarea id="outputText" readonly></textarea>
-        </div>
-        <div class="copy-btn-wrapper">
-            <button class="btn-copy" id="copyBtn">
-                <span>📋</span> 复制文本
-            </button>
-        </div>
-        <div class="footer-note">
-            <span>©️ 小米 Yukiii016 版权所有</span>
+        <div class="toolbar">
+            <button class="btn btn-primary" id="btn-create">+ 创建订单</button>
+            <button class="btn btn-outline" id="btn-export">📤 一键导出</button>
+            <button class="btn btn-danger" id="btn-reset">🗑 重置全部</button>
         </div>
     </div>
 
-    <!-- 轻提示 -->
-    <div id="toast" class="toast-message">✅ 已复制到剪贴板</div>
+    <div class="board">
+        <div class="column pending" id="col-pending">
+            <div class="column-header"><h2>⏳ 待接单 <span class="count" id="pending-count">0</span></h2></div>
+            <div class="card-list" id="pending-list"></div>
+        </div>
+        <div class="column progress" id="col-progress">
+            <div class="column-header"><h2>⚙️ 正在进行 <span class="count" id="progress-count">0</span></h2></div>
+            <div class="list-view" id="progress-list"></div>
+        </div>
+        <div class="column done" id="col-done">
+            <div class="column-header"><h2>✅ 已结束 <span class="count" id="done-count">0</span></h2></div>
+            <div class="list-view" id="done-list"></div>
+        </div>
+        <div class="column abandoned" id="col-abandoned">
+            <div class="column-header"><h2>🚫 弃单 <span class="count" id="abandoned-count">0</span></h2></div>
+            <div class="list-view" id="abandoned-list"></div>
+        </div>
+    </div>
+    <div class="footer">© Kuromimiyi 小米 版权所有</div>
+</div>
 
-    <script>
-        (function() {
-            // ========== 派单类型选项数据 ==========
-            const ORDER_TYPE_OPTIONS = [
-                "A.炸单费//1",
-                "A.打赏//1",
-                "中二之魂困难版588保1388绝密/588",
-                "中二之魂普通版168保588绝密/168",
-                "英语课代表困难版588保1388绝密/588",
-                "英语课代表普通版168保588绝密/168",
-                "武器大师588保1388绝密/588",
-                "我要AW子弹单1388绝密/1388",
-                "小金爆仓单488绝密/488",
-                "1V1单挑最终版358保1688绝密/358",
-                "1V1单挑加强版268保1188绝密/268",
-                "1V1单挑体验版168保788绝密/168",
-                "众神归位1488保5888绝密/1488",
-                "众神归位988保3688绝密/988",
-                "众神归位588保2588绝密/588",
-                "众神归位388保1488绝密/388",
-                "优胜劣汰588保2088绝密/588",
-                "小小巨人机密版299机密/299",
-                "小小巨人定制版1688绝密/1688",
-                "小小巨人常规版698绝密/698",
-                "小小巨人基础版388绝密/388",
-                "嘉豪版/霸总版趣味体验单298保988绝密/298",
-                "娱乐体验单258保1e绝密/258",
-                "清图二连撤258保1088机密/258",
-                "一命通关基础版1988绝密/1988",
-                "一命通关基础版888绝密/888",
-                "一命通关基础版288绝密/288",
-                "一命通关机密地狱版899保5288机密/899",
-                "一命通关机密正式版598保2888机密/598",
-                "一命通关机密体验版398保1888机密/398",
-                "陪玩单-女陪专属加价/娱乐20/h",
-                "陪玩单-单陪1P2/女/娱乐90/h",
-                "陪玩单-单陪/女/娱乐70/h",
-                "陪玩单-双陪/魔王140/h/人",
-                "陪玩单-双陪/巅峰100/h/人",
-                "陪玩单-双陪/金牌70/h/人",
-                "陪玩单-单陪1P2/魔王180/h",
-                "陪玩单-单陪1P2/巅峰140/h",
-                "陪玩单-单陪1P2/金牌100/h",
-                "陪玩单-单陪1P2/娱乐70/h",
-                "陪玩单-单陪/魔王160/h",
-                "陪玩单-单陪/巅峰120/h",
-                "陪玩单-单陪/金牌80/h",
-                "陪玩单-单陪/娱乐50/h",
-                "正价护航-机密清图388保888机密/388",
-                "正价护航299保2888机密/299",
-                "正价护航199保1688机密/199",
-                "正价护航128保1088机密/128",
-                "正价护航88保688机密/88",
-                "正价护航-1388保1e绝密/1388",
-                "正价护航-688保4688绝密/688",
-                "正价护航-488保3388绝密/488",
-                "正价护航-258保1688绝密/258",
-                "正价护航-158保888绝密/158",
-                "机密体验-1000保1e机密/1000",
-                "机密体验-299保3299机密/299",
-                "机密体验-199保2199机密/199",
-                "机密体验-99保998机密/99",
-                "机密体验-49.9保528机密/49.9",
-                "新客体验-1188保1e绝密/1188",
-                "新客体验-368保2688绝密/368",
-                "新客体验-238保1888绝密/238",
-                "新客体验-138保888绝密/138",
-                "新客体验-对赌268单局1000w绝密/268",
-                "新客体验-108保688绝密/108"
-            ];
+<div id="panel-container"></div>
+<div id="export-container"></div>
 
-            // ========== DOM 元素 ==========
-            const orderIdPrefixSpan = document.getElementById('orderIdPrefix');
-            const orderIdSeqInput = document.getElementById('orderIdSeq');
-            const customerServiceSelect = document.getElementById('customerService');
-            const bossNicknameInput = document.getElementById('bossNickname');
-            const orderTypeInput = document.getElementById('orderTypeInput');
-            const orderTypeDropdown = document.getElementById('orderTypeDropdown');
-            const orderTypeWrapper = document.getElementById('orderTypeWrapper');
-            const customTypeInput = document.getElementById('customType');
-            const peopleCountSelect = document.getElementById('peopleCount');
-            const dispatchTimeInput = document.getElementById('dispatchTime');
-            const extraNoteInput = document.getElementById('extraNote');
-            const outputTextarea = document.getElementById('outputText');
-            const generateBtn = document.getElementById('generateBtn');
-            const clearBtn = document.getElementById('clearBtn');
-            const copyBtn = document.getElementById('copyBtn');
-            const toast = document.getElementById('toast');
+<script>
+/* ============ 数据层 ============ */
+const STORAGE_KEY = 'paidan_orders_v9_hide_transfer_on_done';
 
-            // 固定不可编辑的模板内容（多行）
-            const FIXED_BLOCK = ` ✨🈚队友扣1️⃣
- ✨🈶队友扣2️⃣  @队友
- ✨即时订单5分钟内进队伍给反馈`;
+const DEFAULT_ORDERS = [
+    {id:'1118-26',customerService:'薯片',bossNickname:'姜尚真',type:'环游航天288/1288-/--288',expectedPeople:'2人',extra:'需要优先处理，老板急着开',assignee1:'',assignee2:'',status:'pending',bossWaiting:true,bossFinished:false,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[]},
+    {id:'1118-27',customerService:'小葵',bossNickname:'星野',type:'环游航天288/1288-/--288',expectedPeople:'3人',extra:'老板说可等',assignee1:'',assignee2:'',status:'pending',bossWaiting:true,bossFinished:false,urgent:true,createTime:'2026-11-18 15:50:12',transferGroups:[]},
+    {id:'1118-25',customerService:'薯片',bossNickname:'陈平安',type:'环游航天288/1288-/--288',expectedPeople:'2人',extra:'已完成反馈',assignee1:'小葵',assignee2:'',status:'progress',bossWaiting:false,bossFinished:false,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[{player1:'小葵',player2:'',count:'1',fee:'0',desc:'首组'}]},
+    {id:'1118-28',customerService:'阿卷',bossNickname:'李四',type:'环游航天288/1288-/--288',expectedPeople:'3人',extra:'',assignee1:'薯片',assignee2:'小葵',status:'progress',bossWaiting:true,bossFinished:false,urgent:false,createTime:'2026-11-18 15:52:00',transferGroups:[{player1:'薯片',player2:'小葵',count:'2',fee:'0',desc:'第一组'},{player1:'阿卷',player2:'',count:'1',fee:'20',desc:'换组，炸单费20'}]},
+    {id:'1118-24',customerService:'阿卷',bossNickname:'宁姚',type:'环游航天288/1288-/--288',expectedPeople:'1人',extra:'需要核对信息',assignee1:'薯片',assignee2:'阿卷',status:'done',bossWaiting:false,bossFinished:true,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[{player1:'薯片',player2:'阿卷',count:'2',fee:'0',desc:'首组'},{player1:'小葵',player2:'',count:'1',fee:'15',desc:'换人，炸单费15'}]},
+    {id:'1118-23',customerService:'小葵',bossNickname:'陆沉',type:'环游航天288/1288-/--288',expectedPeople:'2人',extra:'加急',assignee1:'阿卷',assignee2:'',status:'done',bossWaiting:true,bossFinished:true,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[]},
+    {id:'1118-22',customerService:'小葵',bossNickname:'李二',type:'环游航天288/1288-/--288',expectedPeople:'1人',extra:'客户取消',assignee1:'',assignee2:'',status:'abandoned',bossWaiting:false,bossFinished:false,urgent:false,createTime:'2026-11-18 15:49:31',transferGroups:[]}
+];
 
-            // ========== 工具函数 ==========
-            // 生成日期前缀 MMDD
-            function getDatePrefix() {
-                const now = new Date();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                return month + day;
+function loadOrders(){
+    try{
+        const raw=localStorage.getItem(STORAGE_KEY);
+        if(raw){
+            const parsed=JSON.parse(raw);
+            if(Array.isArray(parsed)) return parsed.map(o=>({...o,transferGroups:(o.transferGroups||[]).map(g=>({...g,count:g.count||'1'}))}));
+        }
+    }catch(e){console.warn('读取失败',e);}
+    const defaults=JSON.parse(JSON.stringify(DEFAULT_ORDERS));
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(defaults));}catch(e){}
+    return defaults;
+}
+function saveOrders(){
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(orders));}
+    catch(e){console.warn('保存失败',e);}
+}
+
+let orders=loadOrders();
+let editingOrderId=null;
+let currentSearchTerm='';
+
+/* ============ DOM ============ */
+const pendingList=document.getElementById('pending-list');
+const progressList=document.getElementById('progress-list');
+const doneList=document.getElementById('done-list');
+const abandonedList=document.getElementById('abandoned-list');
+const pendingCount=document.getElementById('pending-count');
+const progressCount=document.getElementById('progress-count');
+const doneCount=document.getElementById('done-count');
+const abandonedCount=document.getElementById('abandoned-count');
+const panelContainer=document.getElementById('panel-container');
+const exportContainer=document.getElementById('export-container');
+const searchInput=document.getElementById('search-input');
+const searchClear=document.getElementById('search-clear');
+
+/* ============ 工具 ============ */
+function toNumber(v){const n=parseFloat(v);return isNaN(n)?0:n;}
+function groupSubtotal(g){return toNumber(g.count)*toNumber(g.fee);}
+function orderTransferTotal(order){
+    if(!order.transferGroups) return 0;
+    return order.transferGroups.reduce((sum,g)=>sum+groupSubtotal(g),0);
+}
+function fmtMoney(n){return Number.isInteger(n)?String(n):n.toFixed(2);}
+
+function autoCountFromPlayers(player1,player2){
+    const p1=(player1||'').trim();
+    const p2=(player2||'').trim();
+    if(p1&&p2) return '2';
+    if(p1||p2) return '1';
+    return '1';
+}
+
+function sortOrders(list){
+    return [...list].sort((a,b)=>{
+        if(a.urgent&&!b.urgent) return -1;
+        if(!a.urgent&&b.urgent) return 1;
+        return (b.createTime||'').localeCompare(a.createTime||'');
+    });
+}
+function matchesSearch(order){
+    if(!currentSearchTerm) return true;
+    const term=currentSearchTerm.toLowerCase();
+    return order.id.toLowerCase().includes(term)||order.bossNickname.toLowerCase().includes(term)||order.type.toLowerCase().includes(term)||order.customerService.toLowerCase().includes(term);
+}
+function formatDate(date){
+    const y=date.getFullYear();
+    const m=String(date.getMonth()+1).padStart(2,'0');
+    const d=String(date.getDate()).padStart(2,'0');
+    const h=String(date.getHours()).padStart(2,'0');
+    const min=String(date.getMinutes()).padStart(2,'0');
+    const s=String(date.getSeconds()).padStart(2,'0');
+    return `${y}-${m}-${d} ${h}:${min}:${s}`;
+}
+function generateNewId(){
+    let maxNum=0;
+    orders.forEach(o=>{
+        const match=o.id.match(/(\d+)-(\d+)/);
+        if(match){const num=parseInt(match[2]);if(num>maxNum)maxNum=num;}
+    });
+    return `1118-${maxNum+1}`;
+}
+
+function renderTransferInline(groups){
+    if(!groups||groups.length===0) return '';
+    const tags=groups.map((g,i)=>{
+        const names=[g.player1,g.player2].filter(Boolean).join(' & ')||'—';
+        const count=toNumber(g.count)||1;
+        const fee=toNumber(g.fee);
+        const subtotal=count*fee;
+        const feeHtml=fee>0
+            ? `<span class="fee">${count}人×${fmtMoney(fee)}=${fmtMoney(subtotal)}</span>`
+            : '<span class="fee" style="color:#8a9bb2;font-weight:400;">无炸单费</span>';
+        const desc=g.desc?`<span class="desc">${g.desc}</span>`:'';
+        return `<span class="transfer-group-tag">第${i+1}组：${names} ${feeHtml} ${desc}</span>`;
+    }).join('');
+    const total=groups.reduce((s,g)=>s+groupSubtotal(g),0);
+    const totalHtml=total>0?`<span class="transfer-total">炸单费合计：${fmtMoney(total)}</span>`:'';
+    return `<div class="transfer-inline"><span class="transfer-label">🔁 转单记录</span>${tags}${totalHtml}</div>`;
+}
+
+/* ============ 渲染 ============ */
+function renderAll(){
+    pendingList.innerHTML='';
+    progressList.innerHTML='';
+    doneList.innerHTML='';
+    abandonedList.innerHTML='';
+
+    const allPending=sortOrders(orders.filter(o=>o.status==='pending'));
+    const allProgress=sortOrders(orders.filter(o=>o.status==='progress'));
+    const allDone=sortOrders(orders.filter(o=>o.status==='done'));
+    const allAbandoned=orders.filter(o=>o.status==='abandoned');
+
+    const pendingOrders=allPending.filter(matchesSearch);
+    const progressOrders=allProgress.filter(matchesSearch);
+    const doneOrders=allDone.filter(matchesSearch);
+    const abandonedOrders=allAbandoned.filter(matchesSearch);
+
+    pendingCount.textContent=allPending.length;
+    progressCount.textContent=allProgress.length;
+    doneCount.textContent=allDone.length;
+    abandonedCount.textContent=allAbandoned.length;
+
+    pendingOrders.forEach(o=>pendingList.appendChild(createPendingCard(o)));
+    progressOrders.forEach(o=>progressList.appendChild(createProgressItem(o)));
+    doneOrders.forEach(o=>doneList.appendChild(createDoneItem(o)));
+    abandonedOrders.forEach(o=>abandonedList.appendChild(createAbandonedItem(o)));
+
+    if(pendingOrders.length===0) pendingList.innerHTML=currentSearchTerm?'<div class="empty-state">没有匹配的待接单</div>':'<div class="empty-state">暂无待接单</div>';
+    if(progressOrders.length===0) progressList.innerHTML=currentSearchTerm?'<div class="empty-state">没有匹配的进行中订单</div>':'<div class="empty-state">暂无进行中订单</div>';
+    if(doneOrders.length===0) doneList.innerHTML=currentSearchTerm?'<div class="empty-state">没有匹配的已结束订单</div>':'<div class="empty-state">暂无已结束订单</div>';
+    if(abandonedOrders.length===0) abandonedList.innerHTML=currentSearchTerm?'<div class="empty-state">没有匹配的弃单</div>':'<div class="empty-state">暂无弃单</div>';
+}
+
+/* ============ 卡片构建 ============ */
+function createPendingCard(order){
+    const card=document.createElement('div');
+    card.className='card'+(order.urgent?' urgent':'');
+    card.dataset.orderId=order.id;
+
+    const bossWaiting=order.bossWaiting!==false;
+    const bossWaitingText=bossWaiting?'等待中':'不在线';
+    const bossDotClass=bossWaiting?'waiting':'offline';
+    const assignee1=order.assignee1||'';
+    const assignee2=order.assignee2||'';
+    const urgentBtn=`<button class="btn ${order.urgent?'btn-urgent active':'btn-urgent'}" data-action="toggle-urgent">⚡ ${order.urgent?'取消加急':'加急'}</button>`;
+
+    card.innerHTML=`
+        <div class="card-main">
+            <div class="card-header">
+                <div class="order-id-group">
+                    <span class="order-id">${order.id}</span>
+                    ${order.urgent?'<span class="urgent-badge">⚡ 加急</span>':''}
+                </div>
+                <span class="status-badge pending-badge">待接单</span>
+            </div>
+            <div class="info-row">
+                <div class="info-item"><span class="info-label">派单客服</span><span class="info-value">${order.customerService}</span></div>
+                <div class="info-item"><span class="info-label">老板昵称</span><span class="info-value" style="font-weight:700;">${order.bossNickname}</span></div>
+                <div class="info-item"><span class="info-label">预计人数</span><span class="info-value">${order.expectedPeople}</span></div>
+                <div class="info-item"><span class="info-label">老板状态</span><span class="info-value">
+                    <span class="boss-status">
+                        <span class="status-toggle" data-action="toggle-boss">
+                            <span class="status-dot ${bossDotClass}"></span>
+                            <span class="status-label">${bossWaitingText}</span>
+                        </span>
+                    </span>
+                </span></div>
+                <div class="info-item" style="flex:1 1 100%;"><span class="info-label">派单类型</span><span class="info-value type">${order.type}</span></div>
+                ${order.extra?`<div class="info-item" style="flex:1 1 100%;"><span class="info-label">需求补充</span><span class="info-value note">${order.extra}</span></div>`:''}
+            </div>
+            <div class="assignee-row">
+                <div class="assignee-item"><label>接单人1</label><input type="text" class="assignee-input" placeholder="姓名" value="${assignee1}" data-assignee="1"></div>
+                <div class="assignee-item"><label>接单人2</label><input type="text" class="assignee-input" placeholder="可选" value="${assignee2}" data-assignee="2"></div>
+            </div>
+        </div>
+        <div class="card-side">
+            ${urgentBtn}
+            <button class="btn btn-primary" data-action="move-to-progress">▶ 进行</button>
+            <button class="btn btn-abandon" data-action="abandon">🚫 弃单</button>
+            <button class="btn btn-edit" data-action="edit-order">✎ 编辑</button>
+        </div>
+    `;
+
+    if(currentSearchTerm){
+        const term=currentSearchTerm.toLowerCase();
+        const text=(order.id+order.bossNickname+order.type+order.customerService).toLowerCase();
+        if(text.includes(term)) card.classList.add('search-highlight');
+    }
+    return card;
+}
+
+function createProgressItem(order){
+    const item=document.createElement('div');
+    item.className='list-item progress-item';
+    item.dataset.orderId=order.id;
+
+    const assignees=[order.assignee1,order.assignee2].filter(Boolean).join('、')||'—';
+    const transferInlineHtml=renderTransferInline(order.transferGroups);
+
+    item.innerHTML=`
+        <div class="list-info">
+            <div class="list-row">
+                <span class="list-id">${order.id}</span>
+                <span class="list-field"><strong>客服</strong><span>${order.customerService}</span></span>
+                <span class="list-field"><strong>老板</strong><span class="list-boss">${order.bossNickname}</span></span>
+                <span class="list-field"><strong>类型</strong><span class="list-type">${order.type}</span></span>
+                <span class="list-field"><strong>人数</strong><span>${order.expectedPeople}</span></span>
+                <span class="list-field"><strong>接单人</strong><span>${assignees}</span></span>
+            </div>
+            ${transferInlineHtml}
+        </div>
+        <div class="list-actions">
+            <button class="btn btn-transfer" data-action="transfer">🔁 转单</button>
+            <button class="btn btn-done" data-action="move-to-done">✓ 结束</button>
+            <button class="btn btn-outline" data-action="move-to-pending">↩ 退回</button>
+            <button class="btn btn-edit" data-action="edit-order">✎ 编辑</button>
+        </div>
+    `;
+
+    if(currentSearchTerm){
+        const term=currentSearchTerm.toLowerCase();
+        const text=(order.id+order.bossNickname+order.type+order.customerService).toLowerCase();
+        if(text.includes(term)) item.classList.add('search-highlight');
+    }
+    return item;
+}
+
+function createDoneItem(order){
+    const item=document.createElement('div');
+    item.className='list-item done-item';
+    item.dataset.orderId=order.id;
+
+    const assignees=[order.assignee1,order.assignee2].filter(Boolean).join('、')||'—';
+    const hasTransfer=order.transferGroups&&order.transferGroups.length>0;
+
+    item.innerHTML=`
+        <div class="list-info">
+            <div class="list-row">
+                <span class="list-id">${order.id}</span>
+                <span class="list-field"><strong>客服</strong><span>${order.customerService}</span></span>
+                <span class="list-field"><strong>老板</strong><span class="list-boss">${order.bossNickname}</span></span>
+                <span class="list-field"><strong>类型</strong><span class="list-type">${order.type}</span></span>
+                <span class="list-field"><strong>人数</strong><span>${order.expectedPeople}</span></span>
+                <span class="list-field"><strong>接单人</strong><span>${assignees}</span></span>
+            </div>
+        </div>
+        <div class="list-actions">
+            ${hasTransfer?'<button class="btn btn-view-transfer" data-action="view-transfer">📋 查看转单</button>':''}
+            <button class="btn btn-outline" data-action="move-to-progress">↺ 重新进行</button>
+            <button class="btn btn-outline" data-action="move-to-pending">↩ 退回待接</button>
+            <button class="btn btn-edit" data-action="edit-order">✎ 编辑</button>
+            <button class="btn btn-delete" data-action="delete-order">🗑 删除</button>
+        </div>
+    `;
+
+    if(currentSearchTerm){
+        const term=currentSearchTerm.toLowerCase();
+        const text=(order.id+order.bossNickname+order.type+order.customerService).toLowerCase();
+        if(text.includes(term)) item.classList.add('search-highlight');
+    }
+    return item;
+}
+
+function createAbandonedItem(order){
+    const item=document.createElement('div');
+    item.className='list-item abandoned-item';
+    item.dataset.orderId=order.id;
+
+    item.innerHTML=`
+        <div class="list-info">
+            <div class="list-row">
+                <span class="list-id">${order.id}</span>
+                <span class="list-field"><strong>客服</strong><span>${order.customerService}</span></span>
+                <span class="list-field"><strong>老板</strong><span class="list-boss">${order.bossNickname}</span></span>
+                <span class="list-field"><strong>类型</strong><span class="list-type">${order.type}</span></span>
+                <span class="list-field"><strong>人数</strong><span>${order.expectedPeople}</span></span>
+                ${order.extra?`<span class="list-field"><strong>备注</strong><span>${order.extra}</span></span>`:''}
+            </div>
+        </div>
+        <div class="list-actions">
+            <button class="btn btn-reassign" data-action="reassign">↻ 重新派单</button>
+            <button class="btn btn-delete" data-action="delete-order">🗑 删除</button>
+        </div>
+    `;
+
+    if(currentSearchTerm){
+        const term=currentSearchTerm.toLowerCase();
+        const text=(order.id+order.bossNickname+order.type+order.customerService).toLowerCase();
+        if(text.includes(term)) item.classList.add('search-highlight');
+    }
+    return item;
+}
+
+/* ============ 全局事件委托 ============ */
+document.addEventListener('click',function(e){
+    const target=e.target.closest('[data-action]');
+    if(!target) return;
+
+    const action=target.dataset.action;
+    const container=target.closest('.card, .list-item');
+    if(!container) return;
+
+    const orderId=container.dataset.orderId;
+    const order=orders.find(o=>o.id===orderId);
+    if(!order) return;
+
+    e.stopPropagation();
+
+    if(action==='toggle-boss'){
+        const card=target.closest('.card');
+        if(card){
+            const i1=card.querySelector('[data-assignee="1"]');
+            const i2=card.querySelector('[data-assignee="2"]');
+            if(i1) order.assignee1=i1.value.trim();
+            if(i2) order.assignee2=i2.value.trim();
+        }
+        order.bossWaiting=!order.bossWaiting;
+        saveOrders();
+        renderAll();
+        return;
+    }
+
+    if(action==='toggle-urgent'){
+        const card=target.closest('.card');
+        if(card){
+            const i1=card.querySelector('[data-assignee="1"]');
+            const i2=card.querySelector('[data-assignee="2"]');
+            if(i1) order.assignee1=i1.value.trim();
+            if(i2) order.assignee2=i2.value.trim();
+        }
+        order.urgent=!order.urgent;
+        saveOrders();
+        renderAll();
+        return;
+    }
+
+    if(action==='move-to-progress'){
+        const card=target.closest('.card');
+        if(card){
+            const i1=card.querySelector('[data-assignee="1"]');
+            const i2=card.querySelector('[data-assignee="2"]');
+            if(i1) order.assignee1=i1.value.trim();
+            if(i2) order.assignee2=i2.value.trim();
+        }
+        order.status='progress';
+        if(!order.transferGroups||order.transferGroups.length===0){
+            const autoCount=autoCountFromPlayers(order.assignee1,order.assignee2);
+            order.transferGroups=[{player1:order.assignee1||'',player2:order.assignee2||'',count:autoCount,fee:'0',desc:'首组'}];
+        }
+        saveOrders();
+        renderAll();
+        return;
+    }
+
+    if(action==='abandon'){
+        const card=target.closest('.card');
+        if(card){
+            const i1=card.querySelector('[data-assignee="1"]');
+            const i2=card.querySelector('[data-assignee="2"]');
+            if(i1) order.assignee1=i1.value.trim();
+            if(i2) order.assignee2=i2.value.trim();
+        }
+        if(confirm('确定要弃单吗？弃单后将进入弃单板块。')){
+            order.status='abandoned';
+            order.urgent=false;
+            saveOrders();
+            renderAll();
+        }
+        return;
+    }
+
+    if(action==='edit-order'){
+        const card=target.closest('.card');
+        if(card){
+            const i1=card.querySelector('[data-assignee="1"]');
+            const i2=card.querySelector('[data-assignee="2"]');
+            if(i1) order.assignee1=i1.value.trim();
+            if(i2) order.assignee2=i2.value.trim();
+            saveOrders();
+        }
+        openEditPanel(orderId);
+        return;
+    }
+
+    if(action==='transfer'){openTransferPanel(orderId);return;}
+
+    if(action==='move-to-done'){
+        order.status='done';
+        order.bossFinished=true;
+        saveOrders();
+        renderAll();
+        return;
+    }
+
+    if(action==='move-to-pending'){
+        order.status='pending';
+        order.bossFinished=false;
+        order.bossWaiting=true;
+        saveOrders();
+        renderAll();
+        return;
+    }
+
+    if(action==='view-transfer'){openViewTransferPanel(orderId);return;}
+
+    if(action==='reassign'){
+        if(confirm('确定要重新派单吗？订单将回到待接单板块。')){
+            order.status='pending';
+            order.bossFinished=false;
+            order.bossWaiting=true;
+            order.assignee1='';
+            order.assignee2='';
+            order.urgent=false;
+            order.transferGroups=[];
+            order.createTime=formatDate(new Date());
+            saveOrders();
+            renderAll();
+        }
+        return;
+    }
+
+    if(action==='delete-order'){
+        if(confirm(`确定要永久删除订单 ${order.id} 吗？此操作不可恢复。`)){
+            orders=orders.filter(o=>o.id!==orderId);
+            saveOrders();
+            renderAll();
+        }
+        return;
+    }
+});
+
+/* 输入框实时同步 */
+document.addEventListener('input',function(e){
+    const input=e.target.closest('.assignee-input');
+    if(!input) return;
+    const card=input.closest('.card');
+    if(!card) return;
+    const orderId=card.dataset.orderId;
+    const order=orders.find(o=>o.id===orderId);
+    if(!order) return;
+    const which=input.dataset.assignee;
+    if(which==='1') order.assignee1=input.value;
+    if(which==='2') order.assignee2=input.value;
+});
+
+/* ============ 查看转单（含总计） ============ */
+function openViewTransferPanel(orderId){
+    const order=orders.find(o=>o.id===orderId);
+    if(!order) return;
+    const groups=order.transferGroups||[];
+    let groupsHtml='';
+    if(groups.length===0){
+        groupsHtml='<div class="empty-state" style="padding:16px;">暂无转单记录</div>';
+    }else{
+        groups.forEach((g,index)=>{
+            const names=[g.player1,g.player2].filter(Boolean).join(' & ')||'—';
+            const count=toNumber(g.count)||1;
+            const fee=toNumber(g.fee);
+            const subtotal=count*fee;
+            const feeHtml=fee>0
+                ? `<span class="fee-text">${count}人 × 每人${fmtMoney(fee)} = ${fmtMoney(subtotal)}</span>`
+                : '<span style="color:#8a9bb2;">无炸单费</span>';
+            const descHtml=g.desc?`<span class="desc-text">${g.desc}</span>`:'<span style="color:#8a9bb2;">无说明</span>';
+            groupsHtml+=`<div class="group-line"><span class="group-label">第 ${index+1} 组：</span>${names} &nbsp;|&nbsp; ${feeHtml} &nbsp;|&nbsp; ${descHtml}</div>`;
+        });
+    }
+    const total=orderTransferTotal(order);
+    const totalHtml=total>0?`<div class="record-total">炸单费合计：${fmtMoney(total)}</div>`:'';
+
+    panelContainer.innerHTML=`
+        <div class="panel-overlay" id="view-transfer-overlay">
+            <div class="panel" style="max-width:620px;">
+                <h3>📋 转单记录 · ${order.id} <button class="close-panel" id="close-view-transfer-btn">&times;</button></h3>
+                <div style="font-size:.85rem;color:#6b7a8e;margin-bottom:-8px;">${order.bossNickname} · ${order.type} · 已结束</div>
+                <div class="transfer-record-display">${groupsHtml}${totalHtml}</div>
+                <div class="actions-panel"><button class="btn btn-outline" id="view-transfer-close">关闭</button></div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('close-view-transfer-btn').addEventListener('click',closePanel);
+    document.getElementById('view-transfer-close').addEventListener('click',closePanel);
+    document.getElementById('view-transfer-overlay').addEventListener('click',e=>{
+        if(e.target.id==='view-transfer-overlay') closePanel();
+    });
+}
+
+/* ============ 转单编辑 ============ */
+function openTransferPanel(orderId){
+    const order=orders.find(o=>o.id===orderId);
+    if(!order) return;
+    if(!order.transferGroups) order.transferGroups=[];
+    renderTransferPanel(order);
+}
+
+function renderTransferPanel(order){
+    const buildGroupsHtml=()=>{
+        let html='';
+        order.transferGroups.forEach((g,index)=>{
+            const count=toNumber(g.count)||1;
+            const fee=toNumber(g.fee);
+            const subtotal=count*fee;
+            html+=`
+                <div class="transfer-group" data-group-index="${index}">
+                    <div class="group-header">
+                        <span>第 ${index+1} 组</span>
+                        <button class="group-remove" data-action="remove-group" title="删除此组">✕</button>
+                    </div>
+                    <div class="group-inputs">
+                        <label>打手1</label><input type="text" value="${g.player1||''}" data-group-field="player1" placeholder="名字">
+                        <label>打手2</label><input type="text" value="${g.player2||''}" data-group-field="player2" placeholder="可选">
+                        <label>人数</label><input type="number" min="1" class="count-input" value="${g.count||'1'}" data-group-field="count" placeholder="1" title="根据打手自动识别，可手动修改">
+                        <label>每人炸单费</label><input type="number" min="0" class="fee-input" value="${g.fee||''}" data-group-field="fee" placeholder="0">
+                        <label>说明</label><input type="text" class="desc-input" value="${g.desc||''}" data-group-field="desc" placeholder="换组原因等">
+                    </div>
+                    <div class="group-subtotal">本组小计：${count}人 × ${fmtMoney(fee)} = <strong>${fmtMoney(subtotal)}</strong></div>
+                </div>
+            `;
+        });
+        return html||'<div class="empty-state" style="padding:16px;">暂无转单记录，点击下方按钮添加第一组</div>';
+    };
+
+    const buildTotalHtml=()=>{
+        const total=order.transferGroups.reduce((s,g)=>s+groupSubtotal(g),0);
+        return `<div class="transfer-total-bar"><span>🔻 炸单费总计（所有组合计）</span><span class="total-amount">${fmtMoney(total)}</span></div>`;
+    };
+
+    panelContainer.innerHTML=`
+        <div class="panel-overlay" id="transfer-overlay">
+            <div class="panel" style="max-width:860px;">
+                <h3>🔁 转单记录 · ${order.id} <button class="close-panel" id="close-transfer-btn">&times;</button></h3>
+                <div style="font-size:.85rem;color:#6b7a8e;margin-bottom:-8px;">订单：${order.bossNickname} · ${order.type} · 人数按打手自动识别，炸单费=人数×每人费用</div>
+                <div class="transfer-group-list" id="transfer-group-list">${buildGroupsHtml()}</div>
+                <button class="btn btn-outline add-group-btn" id="btn-add-group">+ 添加一组打手</button>
+                <div id="transfer-total-wrapper">${buildTotalHtml()}</div>
+                <div class="actions-panel">
+                    <button class="btn btn-outline" id="transfer-cancel">取消</button>
+                    <button class="btn btn-primary" id="transfer-save">保存转单记录</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const refreshTotals=()=>{
+        const groups=collectGroupsFromPanel();
+        order.transferGroups=groups;
+        document.querySelectorAll('.transfer-group').forEach((el,index)=>{
+            const g=groups[index];
+            const count=toNumber(g.count)||1;
+            const fee=toNumber(g.fee);
+            const subtotal=count*fee;
+            const subEl=el.querySelector('.group-subtotal');
+            if(subEl) subEl.innerHTML=`本组小计：${count}人 × ${fmtMoney(fee)} = <strong>${fmtMoney(subtotal)}</strong>`;
+        });
+        const totalWrapper=document.getElementById('transfer-total-wrapper');
+        if(totalWrapper) totalWrapper.innerHTML=buildTotalHtml();
+    };
+
+    document.getElementById('close-transfer-btn').addEventListener('click',closePanel);
+    document.getElementById('transfer-cancel').addEventListener('click',closePanel);
+    document.getElementById('transfer-overlay').addEventListener('click',e=>{
+        if(e.target.id==='transfer-overlay') closePanel();
+    });
+
+    document.getElementById('btn-add-group').addEventListener('click',()=>{
+        const currentGroups=collectGroupsFromPanel();
+        currentGroups.push({player1:'',player2:'',count:'1',fee:'0',desc:''});
+        order.transferGroups=currentGroups;
+        renderTransferPanel(order);
+    });
+
+    document.querySelectorAll('[data-action="remove-group"]').forEach(btn=>{
+        btn.addEventListener('click',e=>{
+            e.stopPropagation();
+            const groupEl=btn.closest('.transfer-group');
+            const idx=parseInt(groupEl.dataset.groupIndex);
+            const currentGroups=collectGroupsFromPanel();
+            currentGroups.splice(idx,1);
+            order.transferGroups=currentGroups;
+            renderTransferPanel(order);
+        });
+    });
+
+    document.querySelectorAll('[data-group-field="player1"], [data-group-field="player2"]').forEach(inp=>{
+        inp.addEventListener('input',function(){
+            const groupEl=this.closest('.transfer-group');
+            const countInput=groupEl.querySelector('[data-group-field="count"]');
+            if(!countInput) return;
+            const p1=groupEl.querySelector('[data-group-field="player1"]').value;
+            const p2=groupEl.querySelector('[data-group-field="player2"]').value;
+            const auto=autoCountFromPlayers(p1,p2);
+            countInput.value=auto;
+            refreshTotals();
+        });
+    });
+
+    document.querySelectorAll('[data-group-field="count"], [data-group-field="fee"]').forEach(inp=>{
+        inp.addEventListener('input',refreshTotals);
+    });
+
+    document.getElementById('transfer-save').addEventListener('click',()=>{
+        const currentGroups=collectGroupsFromPanel();
+        currentGroups.forEach(g=>{
+            g.count=autoCountFromPlayers(g.player1,g.player2);
+        });
+        order.transferGroups=currentGroups;
+        if(currentGroups.length>0){
+            const last=currentGroups[currentGroups.length-1];
+            order.assignee1=last.player1||'';
+            order.assignee2=last.player2||'';
+        }
+        saveOrders();
+        closePanel();
+        renderAll();
+    });
+
+    function collectGroupsFromPanel(){
+        const groups=[];
+        document.querySelectorAll('.transfer-group').forEach(el=>{
+            const player1=el.querySelector('[data-group-field="player1"]')?.value.trim()||'';
+            const player2=el.querySelector('[data-group-field="player2"]')?.value.trim()||'';
+            const count=el.querySelector('[data-group-field="count"]')?.value.trim()||'1';
+            const fee=el.querySelector('[data-group-field="fee"]')?.value.trim()||'0';
+            const desc=el.querySelector('[data-group-field="desc"]')?.value.trim()||'';
+            groups.push({player1,player2,count,fee,desc});
+        });
+        return groups;
+    }
+}
+
+/* ============ 创建/编辑面板 ============ */
+function openCreatePanel(){
+    editingOrderId=null;
+    const newId=generateNewId();
+    const timeStr=formatDate(new Date());
+    renderPanel({
+        id:newId,customerService:'',bossNickname:'',type:'',expectedPeople:'',extra:'',
+        assignee1:'',assignee2:'',status:'pending',bossWaiting:true,bossFinished:false,
+        urgent:false,createTime:timeStr,transferGroups:[]
+    },'create');
+}
+
+function openEditPanel(orderId){
+    const order=orders.find(o=>o.id===orderId);
+    if(!order) return;
+    editingOrderId=orderId;
+    renderPanel({...order},'edit');
+}
+
+function renderPanel(data,mode='create'){
+    const isEdit=mode==='edit';
+    const title=isEdit?'编辑订单':'创建订单';
+
+    panelContainer.innerHTML=`
+        <div class="panel-overlay" id="panel-overlay">
+            <div class="panel">
+                <h3>${title} <button class="close-panel" id="close-panel-btn">&times;</button></h3>
+
+                <div class="paste-area">
+                    <label>📋 一键粘贴解析</label>
+                    <textarea id="paste-textarea" placeholder="粘贴格式示例：&#10;派单编号：1118-26&#10;派单客服：薯片&#10;老板昵称：姜尚真&#10;派单类型：环游航天288/1288-/--288&#10;预计人数：2人&#10;需求补充：优先处理"></textarea>
+                    <div class="hint">支持「字段：值」每行一个，自动填充下方表单</div>
+                    <button class="btn btn-outline btn-paste-apply" id="btn-apply-paste">解析并填充</button>
+                </div>
+
+                <div class="row-2col">
+                    <div class="field"><label>派单编号</label><input type="text" id="field-id" value="${data.id||''}" ${isEdit?'readonly':''}></div>
+                    <div class="field"><label>派单客服</label><input type="text" id="field-cs" value="${data.customerService||''}"></div>
+                </div>
+                <div class="row-2col">
+                    <div class="field"><label>老板昵称</label><input type="text" id="field-boss" value="${data.bossNickname||''}"></div>
+                    <div class="field"><label>预计人数</label><input type="text" id="field-people" value="${data.expectedPeople||''}"></div>
+                </div>
+                <div class="field"><label>派单类型</label><input type="text" id="field-type" value="${data.type||''}"></div>
+                <div class="field"><label>需求补充</label><textarea id="field-extra">${data.extra||''}</textarea></div>
+                <div class="row-2col">
+                    <div class="field"><label>接单人1</label><input type="text" id="field-assignee1" value="${data.assignee1||''}" placeholder="姓名"></div>
+                    <div class="field"><label>接单人2</label><input type="text" id="field-assignee2" value="${data.assignee2||''}" placeholder="可选"></div>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="field-boss-waiting" ${data.bossWaiting!==false?'checked':''}>
+                    <label for="field-boss-waiting">老板等待中（取消勾选则不在线）</label>
+                </div>
+                <div class="actions-panel">
+                    <button class="btn btn-outline" id="panel-cancel">取消</button>
+                    <button class="btn btn-primary" id="panel-save">${isEdit?'保存修改':'创建订单'}</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('close-panel-btn').addEventListener('click',closePanel);
+    document.getElementById('panel-cancel').addEventListener('click',closePanel);
+    document.getElementById('panel-overlay').addEventListener('click',e=>{
+        if(e.target.id==='panel-overlay') closePanel();
+    });
+
+    document.getElementById('btn-apply-paste').addEventListener('click',()=>{
+        const text=document.getElementById('paste-textarea').value;
+        const parsed=parsePasteText(text);
+        if(parsed){
+            if(parsed.id) document.getElementById('field-id').value=parsed.id;
+            if(parsed.customerService) document.getElementById('field-cs').value=parsed.customerService;
+            if(parsed.bossNickname) document.getElementById('field-boss').value=parsed.bossNickname;
+            if(parsed.type) document.getElementById('field-type').value=parsed.type;
+            if(parsed.expectedPeople) document.getElementById('field-people').value=parsed.expectedPeople;
+            if(parsed.extra) document.getElementById('field-extra').value=parsed.extra;
+            if(parsed.assignee1) document.getElementById('field-assignee1').value=parsed.assignee1;
+            if(parsed.assignee2) document.getElementById('field-assignee2').value=parsed.assignee2;
+        }
+    });
+
+    document.getElementById('panel-save').addEventListener('click',()=>{
+        const newData={
+            id:document.getElementById('field-id').value.trim(),
+            customerService:document.getElementById('field-cs').value.trim(),
+            bossNickname:document.getElementById('field-boss').value.trim(),
+            type:document.getElementById('field-type').value.trim(),
+            expectedPeople:document.getElementById('field-people').value.trim(),
+            extra:document.getElementById('field-extra').value.trim(),
+            assignee1:document.getElementById('field-assignee1').value.trim(),
+            assignee2:document.getElementById('field-assignee2').value.trim(),
+            bossWaiting:document.getElementById('field-boss-waiting').checked
+        };
+
+        if(!newData.id){alert('派单编号不能为空');return;}
+
+        if(isEdit){
+            const index=orders.findIndex(o=>o.id===editingOrderId);
+            if(index!==-1){
+                orders[index]={...orders[index],...newData};
             }
-
-            // 更新日期前缀显示
-            function updateOrderIdPrefix() {
-                const prefix = getDatePrefix();
-                orderIdPrefixSpan.textContent = prefix;
-                return prefix;
-            }
-
-            // 生成格式化的当前时间: YYYY/M/D  HH:mm
-            function getCurrentFormattedTime() {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = now.getMonth() + 1;
-                const day = now.getDate();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                return `${year}/${month}/${day}  ${hours}:${minutes}`;
-            }
-
-            // 更新时间输入框
-            function updateDispatchTime() {
-                const currentTime = getCurrentFormattedTime();
-                dispatchTimeInput.value = currentTime;
-                return currentTime;
-            }
-
-            // 获取完整派单编号
-            function getFullOrderId() {
-                const prefix = getDatePrefix();
-                const seq = orderIdSeqInput.value.trim();
-                if (seq === '') {
-                    return prefix + '-';
-                }
-                return prefix + '-' + seq;
-            }
-
-            // ========== 搜索型下拉列表逻辑 ==========
-            // 渲染下拉列表（根据搜索词过滤）
-            function renderDropdownList(filterText) {
-                const keyword = filterText.trim().toLowerCase();
-                let filtered = ORDER_TYPE_OPTIONS;
-                if (keyword !== '') {
-                    filtered = ORDER_TYPE_OPTIONS.filter(opt =>
-                        opt.toLowerCase().includes(keyword)
-                    );
-                }
-
-                if (filtered.length === 0) {
-                    orderTypeDropdown.innerHTML = '<div class="dropdown-item no-result">🔍 没有找到匹配的选项</div>';
-                } else {
-                    orderTypeDropdown.innerHTML = filtered.map(opt =>
-                        `<div class="dropdown-item" data-value="${opt.replace(/"/g, '&quot;')}">${opt}</div>`
-                    ).join('');
-                }
-            }
-
-            // 显示下拉列表
-            function showDropdown() {
-                renderDropdownList(orderTypeInput.value);
-                orderTypeDropdown.classList.add('show');
-            }
-
-            // 隐藏下拉列表
-            function hideDropdown() {
-                orderTypeDropdown.classList.remove('show');
-            }
-
-            // 选择某一项
-            function selectOrderType(value) {
-                orderTypeInput.value = value;
-                hideDropdown();
-                updateOutput();
-            }
-
-            // 下拉列表点击事件（事件委托）
-            orderTypeDropdown.addEventListener('click', function(e) {
-                const item = e.target.closest('.dropdown-item');
-                if (!item || item.classList.contains('no-result')) return;
-                const value = item.getAttribute('data-value');
-                if (value !== null) {
-                    selectOrderType(value);
-                }
+        }else{
+            if(orders.some(o=>o.id===newData.id)){alert('派单编号已存在，请修改');return;}
+            orders.push({
+                ...newData,status:'pending',bossFinished:false,urgent:false,
+                createTime:formatDate(new Date()),transferGroups:[]
             });
+        }
 
-            // 输入框获得焦点时显示下拉
-            orderTypeInput.addEventListener('focus', function() {
-                showDropdown();
-            });
+        saveOrders();
+        closePanel();
+        renderAll();
+    });
 
-            // 输入时过滤
-            orderTypeInput.addEventListener('input', function() {
-                showDropdown();
-                updateOutput();
-            });
+    setTimeout(()=>{
+        const firstInput=document.getElementById('field-id');
+        if(firstInput&&!isEdit) firstInput.focus();
+    },100);
+}
 
-            // 点击页面其他区域时隐藏下拉
-            document.addEventListener('click', function(e) {
-                if (!orderTypeWrapper.contains(e.target)) {
-                    hideDropdown();
-                }
-            });
+function closePanel(){
+    panelContainer.innerHTML='';
+    editingOrderId=null;
+}
 
-            // 键盘操作：按 Esc 关闭下拉
-            orderTypeInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    hideDropdown();
-                    orderTypeInput.blur();
-                }
-            });
+function parsePasteText(text){
+    const result={};
+    text.split('\n').forEach(line=>{
+        line=line.trim();
+        if(!line) return;
+        const colonIndex=line.search(/[:：]/);
+        if(colonIndex===-1) return;
+        let key=line.substring(0,colonIndex).trim().replace(/^\d+[\.、\s]*/,'');
+        let value=line.substring(colonIndex+1).trim();
+        if(key.includes('派单编号')||key.toLowerCase().includes('id')) result.id=value;
+        else if(key.includes('派单客服')||key.includes('客服')) result.customerService=value;
+        else if(key.includes('老板昵称')||key.includes('老板')) result.bossNickname=value;
+        else if(key.includes('派单类型')||key.includes('类型')) result.type=value;
+        else if(key.includes('预计人数')||key.includes('人数')) result.expectedPeople=value;
+        else if(key.includes('需求补充')||key.includes('补充')||key.includes('备注')) result.extra=value;
+        else if(key.includes('接单人1')||key.includes('接单人一')) result.assignee1=value;
+        else if(key.includes('接单人2')||key.includes('接单人二')) result.assignee2=value;
+    });
+    return Object.keys(result).length>0?result:null;
+}
 
-            // ========== 生成结果自适应高度（无滚动条） ==========
-            function autoResizeOutput() {
-                outputTextarea.style.height = 'auto';
-                outputTextarea.style.height = outputTextarea.scrollHeight + 'px';
-            }
+/* ============ 导出 ============ */
+function exportPendingOrders(){
+    const pendingOrders=sortOrders(orders.filter(o=>o.status==='pending'));
+    if(pendingOrders.length===0){alert('暂无待接单订单可导出');return;}
 
-            // ========== 核心生成逻辑 ==========
-            function generateTemplate() {
-                const orderId = getFullOrderId();
-                const customerService = customerServiceSelect.value;
-                const bossNickname = bossNicknameInput.value.trim();
-                const selectedOrderType = orderTypeInput.value.trim();
-                const customType = customTypeInput.value.trim();
-                const peopleCount = peopleCountSelect.value;
-                const dispatchTime = dispatchTimeInput.value.trim();
-                const extraNote = extraNoteInput.value.trim();
+    const DIVIDER='------------------------------------';
+    let output='———————蛋表———————\n';
 
-                // 关键逻辑：如果派单类型未选择，使用自定义类型
-                const finalOrderType = selectedOrderType !== '' ? selectedOrderType : customType;
+    pendingOrders.forEach((order,index)=>{
+        output+=order.urgent?'                       ❗️加急\n':'                      ✅️待接\n';
+        output+=`派单编号：${order.id}\n`;
+        output+=`派单客服：${order.customerService}\n`;
+        output+=`老板昵称：${order.bossNickname}\n`;
+        output+=`派单类型：${order.type}\n`;
+        output+=`预计人数：${order.expectedPeople}\n`;
+        output+=`派单时间：${order.createTime}\n`;
+        output+=`需求补充：${order.extra||''}\n`;
+        if(index<pendingOrders.length-1) output+=DIVIDER+'\n';
+    });
 
-                return `派单编号：${orderId}
-派单客服：${customerService}
-老板昵称：${bossNickname}
-派单类型：${finalOrderType}
-预计人数：${peopleCount}
-派单时间：${dispatchTime}
-需求补充：${extraNote}
+    showExportPanel(output,pendingOrders);
+}
 
-${FIXED_BLOCK}`;
-            }
+function showExportPanel(text,pendingOrders){
+    let previewHtml='';
+    const DIVIDER='------------------------------------';
+    pendingOrders.forEach((order,index)=>{
+        previewHtml+=order.urgent?'<div class="export-urgent-highlight">❗️加急</div>':'<div class="export-normal-highlight">✅️待接</div>';
+        previewHtml+=`派单编号：${order.id}<br>`;
+        previewHtml+=`派单客服：${order.customerService}<br>`;
+        previewHtml+=`老板昵称：${order.bossNickname}<br>`;
+        previewHtml+=`派单类型：${order.type}<br>`;
+        previewHtml+=`预计人数：${order.expectedPeople}<br>`;
+        previewHtml+=`派单时间：${order.createTime}<br>`;
+        previewHtml+=`需求补充：${order.extra||''}<br>`;
+        if(index<pendingOrders.length-1) previewHtml+=DIVIDER+'<br>';
+    });
 
-            function updateOutput() {
-                outputTextarea.value = generateTemplate();
-                autoResizeOutput();
-            }
+    exportContainer.innerHTML=`
+        <div class="panel-overlay" id="export-overlay">
+            <div class="panel" style="max-width:760px;">
+                <h3>📤 蛋表导出 <button class="close-panel" id="close-export-btn">&times;</button></h3>
+                <div class="field">
+                    <label>导出内容预览 <span style="color:#e63946;font-size:.75rem;font-weight:400;">（红色为加急，绿色为待接）</span></label>
+                    <div style="background:#f8fafc;border:1px solid #cfddee;border-radius:12px;padding:14px 16px;max-height:400px;overflow-y:auto;font-family:'SF Mono','Menlo',monospace;font-size:.82rem;line-height:1.8;color:#1a2b4c;">${previewHtml}</div>
+                </div>
+                <div class="actions-panel" style="justify-content:space-between;">
+                    <span class="hint" style="color:#8a9bb2;font-size:.8rem;">共 ${pendingOrders.length} 个待接单${pendingOrders.filter(o=>o.urgent).length>0?`，其中 ${pendingOrders.filter(o=>o.urgent).length} 个加急`:''}</span>
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn btn-outline" id="btn-copy-export">📋 复制内容</button>
+                        <button class="btn btn-primary" id="btn-download-export">⬇ 下载 .txt</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 
-            function refreshTimeAndOutput() {
-                updateOrderIdPrefix();
-                updateDispatchTime();
-                updateOutput();
-            }
+    document.getElementById('close-export-btn').addEventListener('click',()=>{exportContainer.innerHTML='';});
+    document.getElementById('export-overlay').addEventListener('click',e=>{
+        if(e.target.id==='export-overlay') exportContainer.innerHTML='';
+    });
 
-            // ========== Toast 提示 ==========
-            let toastTimer = null;
-            function showToast(message, isSuccess = true) {
-                if (toastTimer) clearTimeout(toastTimer);
-                toast.textContent = message || (isSuccess ? '✅ 已复制到剪贴板' : '⚠️ 复制失败，请手动复制');
-                toast.classList.add('show');
-                toastTimer = setTimeout(() => {
-                    toast.classList.remove('show');
-                }, 2000);
-            }
+    document.getElementById('btn-copy-export').addEventListener('click',()=>{
+        navigator.clipboard.writeText(text).then(()=>{
+            const btn=document.getElementById('btn-copy-export');
+            btn.textContent='✅ 已复制';
+            setTimeout(()=>{btn.textContent='📋 复制内容';},1500);
+        }).catch(()=>{
+            const ta=document.createElement('textarea');
+            ta.value=text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            const btn=document.getElementById('btn-copy-export');
+            btn.textContent='✅ 已复制';
+            setTimeout(()=>{btn.textContent='📋 复制内容';},1500);
+        });
+    });
 
-            // ========== 复制功能 ==========
-            async function copyToClipboard() {
-                const text = outputTextarea.value;
-                if (!text) return;
-                try {
-                    await navigator.clipboard.writeText(text);
-                    showToast('✅ 已复制到剪贴板');
-                    copyBtn.classList.add('copied');
-                    copyBtn.innerHTML = '<span>✅</span> 已复制';
-                    setTimeout(() => {
-                        copyBtn.classList.remove('copied');
-                        copyBtn.innerHTML = '<span>📋</span> 复制文本';
-                    }, 1500);
-                } catch (err) {
-                    outputTextarea.select();
-                    document.execCommand('copy');
-                    showToast('📋 已复制 (备用方式)');
-                    copyBtn.classList.add('copied');
-                    copyBtn.innerHTML = '<span>✅</span> 已复制';
-                    setTimeout(() => {
-                        copyBtn.classList.remove('copied');
-                        copyBtn.innerHTML = '<span>📋</span> 复制文本';
-                    }, 1500);
-                }
-            }
+    document.getElementById('btn-download-export').addEventListener('click',()=>{
+        const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url;
+        a.download=`蛋表_${formatDate(new Date()).replace(/[: ]/g,'_')}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
 
-            // ========== 一键清空 ==========
-            function clearAll() {
-                orderIdSeqInput.value = '';
-                customerServiceSelect.value = '';
-                bossNicknameInput.value = '';
-                orderTypeInput.value = '';
-                customTypeInput.value = '';
-                peopleCountSelect.value = '';
-                extraNoteInput.value = '';
-                hideDropdown();
-                updateDispatchTime();
-                updateOutput();
-                showToast('🗑️ 已清空所有输入内容', true);
-            }
+/* ============ 搜索 ============ */
+let searchTimer=null;
+searchInput.addEventListener('input',()=>{
+    clearTimeout(searchTimer);
+    searchTimer=setTimeout(()=>{
+        currentSearchTerm=searchInput.value.trim();
+        renderAll();
+        if(currentSearchTerm){
+            const firstHighlight=document.querySelector('.search-highlight');
+            if(firstHighlight) firstHighlight.scrollIntoView({behavior:'smooth',block:'center'});
+        }
+    },300);
+});
 
-            // ========== 事件绑定 ==========
-            const textInputs = [
-                orderIdSeqInput, bossNicknameInput, extraNoteInput, customTypeInput
-            ];
-            textInputs.forEach(input => {
-                input.addEventListener('input', updateOutput);
-            });
-            customerServiceSelect.addEventListener('change', updateOutput);
-            peopleCountSelect.addEventListener('change', updateOutput);
+searchClear.addEventListener('click',()=>{
+    searchInput.value='';
+    currentSearchTerm='';
+    renderAll();
+});
 
-            generateBtn.addEventListener('click', function() {
-                refreshTimeAndOutput();
-                showToast('✨ 模板已更新，时间已同步', true);
-            });
+/* ============ 重置全部（双重确认） ============ */
+function resetAllOrders(){
+    if(orders.length===0){alert('当前没有任何订单，无需重置。');return;}
 
-            clearBtn.addEventListener('click', clearAll);
-            copyBtn.addEventListener('click', copyToClipboard);
+    const firstConfirm=confirm(
+        `⚠️ 警告：即将删除所有 ${orders.length} 个订单！\n\n`+
+        `此操作将清空全部待接单、进行中、已结束和弃单，且不可恢复。\n\n`+
+        `点击“确定”继续，点击“取消”放弃。`
+    );
+    if(!firstConfirm) return;
 
-            // ========== 初始化 ==========
-            (function init() {
-                orderIdSeqInput.value = '';
-                customerServiceSelect.value = '';
-                bossNicknameInput.value = '';
-                orderTypeInput.value = '';
-                customTypeInput.value = '';
-                peopleCountSelect.value = '';
-                extraNoteInput.value = '';
-                updateOrderIdPrefix();
-                updateDispatchTime();
-                updateOutput();
-                renderDropdownList('');
-            })();
+    const secondConfirm=confirm(
+        `🔥 最后确认：真的要清空全部 ${orders.length} 个订单吗？\n\n`+
+        `请再次点击“确定”，数据将永久删除。`
+    );
+    if(!secondConfirm) return;
 
-            // 双击派单时间刷新
-            dispatchTimeInput.addEventListener('dblclick', function() {
-                updateDispatchTime();
-                updateOutput();
-                showToast('⏰ 时间已刷新为当前时间', true);
-            });
+    orders=[];
+    saveOrders();
+    renderAll();
+    alert('✅ 所有订单已重置。');
+}
 
-            // 窗口大小变化时重新自适应输出高度
-            window.addEventListener('resize', autoResizeOutput);
-        })();
-    </script>
+/* ============ 初始化 ============ */
+renderAll();
+
+document.getElementById('btn-create').addEventListener('click',openCreatePanel);
+document.getElementById('btn-export').addEventListener('click',exportPendingOrders);
+document.getElementById('btn-reset').addEventListener('click',resetAllOrders);
+
+window.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+        if(panelContainer.innerHTML) closePanel();
+        if(exportContainer.innerHTML) exportContainer.innerHTML='';
+    }
+});
+</script>
 </body>
 </html>
